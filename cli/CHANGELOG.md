@@ -1,3 +1,14 @@
+## [1.2.0](https://github.com/BlackAsteroid/icf/compare/v1.1.0...v1.2.0) (2026-03-19)
+
+### 🚀 Features
+
+* JSON agent compatibility (ticket [#3](https://github.com/BlackAsteroid/icf/issues/3)) ([127bf1b](https://github.com/BlackAsteroid/icf/commit/127bf1b6cac596fb9bda8631bb9a8fb4e9d26da9))
+* pre-configured token URL + icf init full repo bootstrap ([e9aba66](https://github.com/BlackAsteroid/icf/commit/e9aba666a076130fd9956c328bcdfcc52c319f82)), closes [#4](https://github.com/BlackAsteroid/icf/issues/4) [#5](https://github.com/BlackAsteroid/icf/issues/5) [#4](https://github.com/BlackAsteroid/icf/issues/4) [#5](https://github.com/BlackAsteroid/icf/issues/5)
+
+### 🐛 Bug Fixes
+
+* BUG-01 --version --json, BUG-02 empty --input-json, ticket [#5](https://github.com/BlackAsteroid/icf/issues/5) 404 handling ([ac01b80](https://github.com/BlackAsteroid/icf/commit/ac01b80a6a19c76d712eaa41e7ba268cb50d35ef)), closes [#7](https://github.com/BlackAsteroid/icf/issues/7) [#8](https://github.com/BlackAsteroid/icf/issues/8) [#7](https://github.com/BlackAsteroid/icf/issues/7) [#8](https://github.com/BlackAsteroid/icf/issues/8)
+
 ## [1.1.0](https://github.com/BlackAsteroid/icf/compare/v1.0.0...v1.1.0) (2026-03-19)
 
 ### 🚀 Features
