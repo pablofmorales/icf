@@ -113,10 +113,12 @@ jobs:
     steps:
       - name: Check for stale P0/P1 incidents
         uses: actions/github-script@v7
+        env:
+          DRY_RUN_INPUT: \${{ github.event.inputs.dry_run || 'false' }}
         with:
           github-token: \${{ secrets.GITHUB_TOKEN }}
           script: |
-            const DRY_RUN = '\${{ github.event.inputs.dry_run }}' === 'true';
+            const DRY_RUN = process.env.DRY_RUN_INPUT === 'true';
             const NOW = Date.now();
             const THRESHOLDS = {
               'severity:P0': 15 * 60 * 1000,

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build & typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: cli/package-lock.json
+
+      - name: Install dependencies
+        working-directory: cli
+        run: npm ci
+
+      - name: Type check
+        working-directory: cli
+        run: npm run typecheck
+
+      - name: Build
+        working-directory: cli
+        run: npm run build
+
+      - name: Verify binary is executable
+        working-directory: cli
+        run: node dist/index.js --version
+
+      - name: Verify dist is not tracked in git
+        run: |
+          if git ls-files cli/dist | grep -q .; then
+            echo "ERROR: cli/dist/ is tracked in git. Remove it and update .gitignore."
+            git ls-files cli/dist
+            exit 1
+          fi
+          echo "OK: cli/dist/ is not tracked."
