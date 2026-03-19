@@ -85,6 +85,12 @@ ${chalk.dim("Examples:")}
       const severity    = (opts.severity   ?? answers.severity).toUpperCase();
       const description = opts.description ?? answers.description;
 
+      // Validate service name to prevent injection / garbage data
+      if (!/^[a-zA-Z0-9._\-/\s]{1,100}$/.test(service)) {
+        const msg = "Service name contains invalid characters (max 100 chars, alphanumeric + . _ - / space)";
+        if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
+      }
+
       if (!VALID_SEVERITIES.includes(severity)) {
         const msg = `Invalid severity "${severity}". Use P0, P1, P2, or P3`;
         if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
@@ -356,6 +362,10 @@ ${chalk.dim("Examples:")}
         // Service update
         let newBody = issue.body ?? "";
         if (opts.service) {
+          if (!/^[a-zA-Z0-9._\-/\s]{1,100}$/.test(opts.service)) {
+            const msg = "Service name contains invalid characters (max 100 chars, alphanumeric + . _ - / space)";
+            if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
+          }
           newBody = updateBodyField(newBody, "service", opts.service);
           changes.push(`service: ${opts.service}`);
           timelineLines.push(`📝 Service updated to ${opts.service} by @${auth!.github_user}`);
