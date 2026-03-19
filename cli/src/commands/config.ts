@@ -6,7 +6,14 @@ import { success, errorLine, isJsonMode, jsonOut } from "../utils/format.js";
 import { handleError } from "../utils/errors.js";
 
 export function configCommand(program: Command): void {
-  const cfg = program.command("config").description("Manage ICF configuration");
+  const cfg = program
+    .command("config")
+    .description("Show and validate your ICF configuration")
+    .addHelpText("after", `
+${chalk.dim("Subcommands:")}
+  ${chalk.cyan("config validate")}   Check that auth and repo are working
+  ${chalk.cyan("config show")}       Print current auth user and target repo
+`);
 
   cfg
     .command("validate")

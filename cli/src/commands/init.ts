@@ -177,7 +177,7 @@ jobs:
 export function initCommand(program: Command): void {
   program
     .command("init [owner/repo]")
-    .description("Bootstrap a GitHub repo as a fully configured ICF incident repository")
+    .description("Set up a GitHub repo for ICF incident tracking (labels, templates, workflows)")
     .option("--create",        "Create the repository if it does not exist")
     .option("--private",       "When --create: make the repo private (default)")
     .option("--public",        "When --create: make the repo public")
