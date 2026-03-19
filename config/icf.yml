@@ -1,0 +1,30 @@
+# ICF Configuration
+version: 1
+project:
+  org: "BlackAsteroid"
+  repo: "incident-report"
+  timezone: "UTC"
+
+incident:
+  id_prefix: "INC"
+  auto_close_on_resolve: false
+  require_root_cause: true
+  require_follow_up: false
+
+postmortem:
+  auto_generate: true
+  auto_create_pr: false
+  due_after_resolve_hours: 24
+
+notifications:
+  deduplicate_window: 300
+  quiet_hours:
+    enabled: false
+    start: "22:00"
+    end: "08:00"
+    timezone: "UTC"
+    override_for: ["P0"]
+
+agent:
+  default_timeout: 300
+  max_retries: 3
