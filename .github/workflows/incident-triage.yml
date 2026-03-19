@@ -12,65 +12,43 @@ jobs:
       contains(github.event.issue.labels.*.name, 'type:incident')
 
     steps:
-      - name: Determine severity
-        id: severity
-        run: |
-          LABELS='${{ toJson(github.event.issue.labels.*.name) }}'
-          if echo "$LABELS" | grep -q "severity:P0"; then
-            echo "level=P0" >> $GITHUB_OUTPUT
-            echo "sla_minutes=15" >> $GITHUB_OUTPUT
-            echo "emoji=🔴" >> $GITHUB_OUTPUT
-          elif echo "$LABELS" | grep -q "severity:P1"; then
-            echo "level=P1" >> $GITHUB_OUTPUT
-            echo "sla_minutes=30" >> $GITHUB_OUTPUT
-            echo "emoji=🟠" >> $GITHUB_OUTPUT
-          elif echo "$LABELS" | grep -q "severity:P2"; then
-            echo "level=P2" >> $GITHUB_OUTPUT
-            echo "sla_minutes=120" >> $GITHUB_OUTPUT
-            echo "emoji=🟡" >> $GITHUB_OUTPUT
-          else
-            echo "level=P3" >> $GITHUB_OUTPUT
-            echo "sla_minutes=480" >> $GITHUB_OUTPUT
-            echo "emoji=🔵" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Calculate SLA deadline
-        id: deadline
-        run: |
-          DEADLINE=$(date -u -d "+${{ steps.severity.outputs.sla_minutes }} minutes" "+%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || \
-                     date -u -v+${{ steps.severity.outputs.sla_minutes }}M "+%Y-%m-%dT%H:%M:%SZ")
-          DEADLINE_HUMAN=$(date -u -d "$DEADLINE" "+%H:%M UTC" 2>/dev/null || \
-                           date -u -jf "%Y-%m-%dT%H:%M:%SZ" "$DEADLINE" "+%H:%M UTC")
-          echo "deadline=$DEADLINE" >> $GITHUB_OUTPUT
-          echo "deadline_human=$DEADLINE_HUMAN" >> $GITHUB_OUTPUT
-
-      - name: Post SLA comment
+      - name: Determine severity and post SLA comment
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const severity = '${{ steps.severity.outputs.level }}';
-            const emoji = '${{ steps.severity.outputs.emoji }}';
-            const slaMin = ${{ steps.severity.outputs.sla_minutes }};
-            const deadline = '${{ steps.deadline.outputs.deadline_human }}';
+            // Safe: all label access via JS, no shell interpolation
+            const labels = context.payload.issue.labels.map(l => l.name);
             const issueNumber = context.issue.number;
 
-            const slaTable = {
-              P0: '15 min — immediate response required',
-              P1: '30 min — urgent response required',
-              P2: '2 hours — response required this shift',
-              P3: '8 hours — response required today',
+            const SEVERITY_CONFIG = {
+              'severity:P0': { level: 'P0', emoji: '🔴', slaMin: 15,  slaText: '15 min — immediate response required' },
+              'severity:P1': { level: 'P1', emoji: '🟠', slaMin: 30,  slaText: '30 min — urgent response required' },
+              'severity:P2': { level: 'P2', emoji: '🟡', slaMin: 120, slaText: '2 hours — response required this shift' },
+              'severity:P3': { level: 'P3', emoji: '🔵', slaMin: 480, slaText: '8 hours — response required today' },
             };
 
+            // Find matching severity (highest priority first)
+            const severityOrder = ['severity:P0', 'severity:P1', 'severity:P2', 'severity:P3'];
+            const matchedKey = severityOrder.find(k => labels.includes(k));
+            const config = matchedKey ? SEVERITY_CONFIG[matchedKey] : SEVERITY_CONFIG['severity:P3'];
+
+            const now = new Date();
+            const deadline = new Date(now.getTime() + config.slaMin * 60 * 1000);
+            const deadlineStr = deadline.toUTCString();
+
+            const incidentId = `INC-${String(issueNumber).padStart(3, '0')}`;
+
             const body = [
-              `## ${emoji} Incident Triage — Automated SLA`,
+              `## ${config.emoji} Incident Triage — Automated SLA`,
               ``,
               `| Field | Value |`,
               `|-------|-------|`,
-              `| **Severity** | ${emoji} ${severity} |`,
-              `| **SLA** | ${slaTable[severity]} |`,
-              `| **Deadline** | ${deadline} |`,
-              `| **Opened** | ${new Date().toUTCString()} |`,
+              `| **Incident** | ${incidentId} |`,
+              `| **Severity** | ${config.emoji} ${config.level} |`,
+              `| **SLA** | ${config.slaText} |`,
+              `| **Deadline** | ${deadlineStr} |`,
+              `| **Opened** | ${now.toUTCString()} |`,
               ``,
               `### Response Checklist`,
               `- [ ] Incident commander assigned`,
@@ -78,8 +56,10 @@ jobs:
               `- [ ] Stakeholders notified`,
               `- [ ] Mitigation started`,
               ``,
-              `> Use \`icf incident update INC-${String(issueNumber).padStart(3,'0')} --status mitigating\` to update status.`,
-              `> Use \`icf incident timeline INC-${String(issueNumber).padStart(3,'0')} --event "..."\` to add timeline entries.`,
+              `> Use \`icf incident update ${incidentId} --status mitigating\` to update status.`,
+              `> Use \`icf incident timeline ${incidentId} --event "..."\` to add timeline entries.`,
+              ``,
+              `<!-- icf-triage-comment -->`,
             ].join('\n');
 
             await github.rest.issues.createComment({
@@ -89,16 +69,14 @@ jobs:
               body,
             });
 
-      - name: Assign to project (if configured)
-        continue-on-error: true
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            // Auto-assign to issue opener as initial commander
-            await github.rest.issues.addAssignees({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              assignees: [context.payload.issue.user.login],
-            }).catch(() => {}); // non-fatal
+            // Auto-assign opener as initial incident commander (non-fatal)
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: [context.payload.issue.user.login],
+              });
+            } catch (e) {
+              console.log('Auto-assign skipped:', e.message);
+            }

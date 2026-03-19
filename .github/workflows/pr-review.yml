@@ -10,6 +10,9 @@ permissions:
 
 jobs:
   review:
+    # Only run on PRs from within the same repo (not forks)
+    # Prevents GH_PAT exfiltration via malicious PRs from forks
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     timeout-minutes: 5
 

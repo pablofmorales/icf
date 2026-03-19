@@ -94,9 +94,10 @@ jobs:
               }
 
               // Check if we already posted an escalation in the last threshold period
-              // to avoid spam (look for our escalation marker in recent comments)
+              // Verify comment is from github-actions[bot] + internal tag to prevent bypass
               const recentEscalation = comments
-                .filter(c => c.body.includes('⚠️ **Escalation Alert**'))
+                .filter(c => c.user.login === 'github-actions[bot]')
+                .filter(c => c.body.includes('<!-- icf-escalation-alert -->'))
                 .filter(c => (NOW - new Date(c.created_at).getTime()) < threshold);
 
               if (recentEscalation.length > 0) {
@@ -127,6 +128,8 @@ jobs:
                 ``,
                 `> Run \`icf incident update ${incidentId} --status mitigating\` to acknowledge.`,
                 `> Run \`icf incident timeline ${incidentId} --event "Status update: ..."\` to add context.`,
+                ``,
+                `<!-- icf-escalation-alert -->`,
               ].join('\n');
 
               if (DRY_RUN) {
