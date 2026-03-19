@@ -1,0 +1,40 @@
+{
+  "name": "@blackasteroid/icf",
+  "version": "0.1.0",
+  "description": "Incident Command Framework — CLI-first incident management backed by GitHub",
+  "bin": {
+    "icf": "dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["incident-management", "cli", "github", "devops", "sre"],
+  "author": "Black Asteroid",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BlackAsteroid/incident-report.git"
+  },
+  "files": ["dist/", "README.md"],
+  "publishConfig": { "access": "public" },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^14.0.3",
+    "conf": "^15.1.0",
+    "enquirer": "^2.4.1",
+    "js-yaml": "^4.1.0",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
