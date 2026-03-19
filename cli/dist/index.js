@@ -25396,8 +25396,12 @@ function codeFor(err) {
   if (m.includes("fetch") || m.includes("econnrefused") || m.includes("network")) return EXIT.NETWORK;
   return EXIT.GENERAL;
 }
+function sanitizeGitHubError(msg) {
+  return msg.replace(/\s*-\s*https?:\/\/docs\.github\.com\S*/g, "").trim();
+}
 function handleError(err, opts) {
-  const msg = err instanceof Error ? err.message : String(err);
+  const raw = err instanceof Error ? err.message : String(err);
+  const msg = sanitizeGitHubError(raw);
   if (isJsonMode(opts)) jsonError(msg, codeFor(err));
   errorLine(msg);
   process.exit(codeFor(err));
@@ -25764,6 +25768,7 @@ function getRepoOrDie(opts) {
   requireRepo(opts);
 }
 var VALID_SEVERITIES = ["P0", "P1", "P2", "P3"];
+var VALID_STATUSES = ["open", "mitigating", "resolved"];
 function incidentCommand(program3) {
   const inc = program3.command("incident").description("Manage incidents \u2014 create, list, show, update, resolve").addHelpText("after", `
 ${source_default.dim("Commands:")}
@@ -25847,6 +25852,23 @@ ${source_default.dim("Examples:")}
     const json = isJsonMode(opts);
     const target = getRepoOrDie(opts);
     const octokit = createOctokit(auth2);
+    if (opts.severity) {
+      const sev = opts.severity.toUpperCase();
+      if (!VALID_SEVERITIES.includes(sev)) {
+        const msg = `Invalid severity "${opts.severity}". Valid: ${VALID_SEVERITIES.join(", ")}`;
+        if (json) jsonError(msg, EXIT.VALIDATION);
+        errorLine(msg);
+        process.exit(EXIT.VALIDATION);
+      }
+    }
+    if (opts.status) {
+      if (!VALID_STATUSES.includes(opts.status.toLowerCase())) {
+        const msg = `Invalid status "${opts.status}". Valid: ${VALID_STATUSES.join(", ")}`;
+        if (json) jsonError(msg, EXIT.VALIDATION);
+        errorLine(msg);
+        process.exit(EXIT.VALIDATION);
+      }
+    }
     try {
       const labelFilters = ["type:incident"];
       if (opts.severity) labelFilters.push(`severity:${opts.severity.toUpperCase()}`);
@@ -26184,6 +26206,14 @@ ${source_default.dim("Examples:")}
           process.exit(EXIT.VALIDATION);
         }
         rca = (0, import_fs.readFileSync)(opts.rcaFile, "utf8").trim();
+      }
+      if (!rca && process.stdin.isTTY && !json) {
+        const { rcaInput } = await prompt2({
+          type: "input",
+          name: "rcaInput",
+          message: "Root cause analysis (leave blank to skip):"
+        });
+        if (rcaInput.trim()) rca = rcaInput.trim();
       }
       const durationMins = Math.floor((Date.now() - new Date(issue.created_at).getTime()) / 6e4);
       const resolvedAt = (/* @__PURE__ */ new Date()).toISOString();

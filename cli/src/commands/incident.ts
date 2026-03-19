@@ -157,6 +157,22 @@ ${chalk.dim("Examples:")}
       const target = getRepoOrDie(opts);
       const octokit = createOctokit(auth!);
 
+      // BUG-01: validate filter values before querying — unknown values produce
+      // empty results with no indication of a typo, which is dangerous in scripts.
+      if (opts.severity) {
+        const sev = opts.severity.toUpperCase();
+        if (!VALID_SEVERITIES.includes(sev)) {
+          const msg = `Invalid severity "${opts.severity}". Valid: ${VALID_SEVERITIES.join(", ")}`;
+          if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
+        }
+      }
+      if (opts.status) {
+        if (!VALID_STATUSES.includes(opts.status.toLowerCase())) {
+          const msg = `Invalid status "${opts.status}". Valid: ${VALID_STATUSES.join(", ")}`;
+          if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
+        }
+      }
+
       try {
         const labelFilters: string[] = ["type:incident"];
         if (opts.severity) labelFilters.push(`severity:${opts.severity.toUpperCase()}`);
@@ -557,6 +573,15 @@ ${chalk.dim("Examples:")}
             errorLine(`File not found: ${opts.rcaFile}`); process.exit(EXIT.VALIDATION);
           }
           rca = readFileSync(opts.rcaFile, "utf8").trim();
+        }
+        // NIT-02: prompt for RCA in interactive mode instead of accepting null silently.
+        // In JSON / non-TTY mode, allow empty RCA (some automations may not know it yet).
+        if (!rca && process.stdin.isTTY && !json) {
+          const { rcaInput } = await prompt({
+            type: "input", name: "rcaInput",
+            message: "Root cause analysis (leave blank to skip):",
+          }) as { rcaInput: string };
+          if (rcaInput.trim()) rca = rcaInput.trim();
         }
 
         const durationMins = Math.floor((Date.now() - new Date(issue.created_at).getTime()) / 60000);

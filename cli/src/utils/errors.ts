@@ -18,8 +18,18 @@ function codeFor(err: unknown): number {
   return EXIT.GENERAL;
 }
 
+/**
+ * Strip GitHub API documentation URLs from error messages.
+ * Octokit errors look like: "Not Found - https://docs.github.com/rest/..."
+ * We want: "Not Found"
+ */
+function sanitizeGitHubError(msg: string): string {
+  return msg.replace(/\s*-\s*https?:\/\/docs\.github\.com\S*/g, "").trim();
+}
+
 export function handleError(err: unknown, opts?: { json?: boolean }): never {
-  const msg = err instanceof Error ? err.message : String(err);
+  const raw = err instanceof Error ? err.message : String(err);
+  const msg = sanitizeGitHubError(raw);
   if (isJsonMode(opts)) jsonError(msg, codeFor(err));
   errorLine(msg);
   process.exit(codeFor(err));
