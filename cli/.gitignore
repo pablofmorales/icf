@@ -1,5 +1,5 @@
 node_modules/
-dist/
 *.js.map
 .env
 .env.local
+# dist/ is committed so users can install directly without building

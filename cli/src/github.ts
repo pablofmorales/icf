@@ -4,7 +4,18 @@ import { AuthConfig } from "./config.js";
 export { Octokit };
 
 export function createOctokit(auth: AuthConfig): Octokit {
-  return new Octokit({ auth: auth.github_token });
+  return new Octokit({
+    auth: auth.github_token,
+    // BUG-02 fix: suppress Octokit's internal request/response logging.
+    // Without this, 422s (e.g. "label already exists") print debug lines to
+    // stderr even when the error is caught — pollutes GitHub Actions logs.
+    log: {
+      debug: () => {},
+      info:  () => {},
+      warn:  () => {},
+      error: () => {},
+    },
+  });
 }
 
 // ── Label definitions (from Pato's spec) ─────────────────────────────────────
