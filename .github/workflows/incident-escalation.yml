@@ -15,6 +15,8 @@ jobs:
   escalate:
     name: Escalate Stale Incidents
     runs-on: ubuntu-latest
+    permissions:
+      issues: write   # read issues/comments + post escalation comments
 
     steps:
       - name: Check for stale P0/P1 incidents
