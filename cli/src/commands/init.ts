@@ -25,13 +25,15 @@ export function initCommand(program: Command): void {
   program
     .command("init [owner/repo]")
     .description("Bootstrap a GitHub repo as an ICF incident repository")
-    .option("--private", "Create private repo (default: true)")
-    .option("--public",  "Create public repo")
+    .option("--create",  "Create the repository if it does not exist (required for new repos)")
+    .option("--private", "When --create: make the repo private (default)")
+    .option("--public",  "When --create: make the repo public")
     .option("--json",    "Output as JSON")
     .addHelpText("after", `
 ${chalk.dim("Examples:")}
-  ${chalk.cyan("icf init BlackAsteroid/incident-report")}
-  ${chalk.cyan("icf init my-org/incidents --public")}
+  ${chalk.cyan("icf init BlackAsteroid/incident-report")}              Configure an existing repo
+  ${chalk.cyan("icf init my-org/incidents --create")}                Create new repo + configure
+  ${chalk.cyan("icf init my-org/incidents --create --public")}       Create as public
 
 ${chalk.dim("What gets created:")}
   ✅ Labels: severity (P0-P3), status (open/mitigating/resolved), type:incident
@@ -39,7 +41,7 @@ ${chalk.dim("What gets created:")}
   ✅ Issue template
   ✅ Default repo saved to config
 `)
-    .action(async (orgRepo: string | undefined, opts: { private?: boolean; public?: boolean; json?: boolean }) => {
+    .action(async (orgRepo: string | undefined, opts: { create?: boolean; private?: boolean; public?: boolean; json?: boolean }) => {
       const auth = getAuth();
       if (!auth) requireAuth(opts);
 
@@ -59,19 +61,29 @@ ${chalk.dim("What gets created:")}
         owner = ""; repo = "";
       }
 
-      const isPrivate = !opts.public;
       const octokit = createOctokit(auth!);
       const results: Record<string, unknown> = {};
 
       try {
-        // 1. Ensure repo exists
-        let repoUrl: string;
+        // 1. Check if repo exists; require --create for new repos
+        let repoUrl = "";
+        let repoExists = false;
         try {
           const { data } = await octokit.repos.get({ owner, repo });
           repoUrl = data.html_url;
-          if (!json) console.log(chalk.dim(`Repository ${owner}/${repo} already exists — configuring…`));
+          repoExists = true;
+          if (!json) console.log(chalk.dim(`Repository ${owner}/${repo} exists — configuring…`));
         } catch {
+          repoExists = false;
+        }
+
+        if (!repoExists) {
+          if (!opts.create) {
+            const msg = `Repository ${owner}/${repo} does not exist. Use --create to create it.`;
+            if (json) jsonError(msg, 1); errorLine(msg); process.exit(1);
+          }
           if (!json) process.stdout.write(`Creating repository ${chalk.cyan(`${owner}/${repo}`)}… `);
+          const isPrivate = !opts.public;
           const { data } = await octokit.repos.createInOrg({
             org: owner,
             name: repo,
@@ -80,7 +92,6 @@ ${chalk.dim("What gets created:")}
             has_issues: true,
             auto_init: true,
           }).catch(() =>
-            // Fall back to user repo if org creation fails
             octokit.repos.createForAuthenticatedUser({
               name: repo,
               description: "Incident management powered by ICF",
