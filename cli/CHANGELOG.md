@@ -1,3 +1,9 @@
+## [1.1.0](https://github.com/BlackAsteroid/icf/compare/v1.0.0...v1.1.0) (2026-03-19)
+
+### 🚀 Features
+
+* migrate to BlackAsteroid/icf repo ([2353b68](https://github.com/BlackAsteroid/icf/commit/2353b6845893e12ed5f778bab872a9b78c91e72b))
+
 ## 1.0.0 (2026-03-19)
 
 ### 🚀 Features

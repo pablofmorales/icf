@@ -1,6 +1,6 @@
 {
   "name": "@blackasteroid/icf",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Incident Command Framework — CLI-first incident management backed by GitHub",
   "bin": {
     "icf": "dist/index.js"
