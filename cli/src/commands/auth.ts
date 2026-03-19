@@ -18,8 +18,9 @@ export function authCommand(program: Command): void {
     .option("--token <token|$VAR>", "GitHub PAT or env var reference like '$GITHUB_TOKEN'")
     .option("--json", "Output as JSON")
     .addHelpText("after", `
-${chalk.dim("Required token scopes: repo, write:issues")}
-Create at: https://github.com/settings/tokens/new
+${chalk.dim("Required token scopes: repo, workflow, write:packages")}
+${chalk.dim("Create a pre-configured token at:")}
+  ${chalk.cyan("https://github.com/settings/tokens/new?scopes=repo,workflow,write:packages&description=icf-cli")}
 
 ${chalk.dim("Examples:")}
   ${chalk.cyan("icf auth login")}
@@ -45,8 +46,10 @@ ${chalk.dim("Examples:")}
         }
       } else {
         if (!json) {
-          console.log(chalk.dim("Create a token at: https://github.com/settings/tokens/new"));
-          console.log(chalk.dim("Required scopes: repo, write:issues\n"));
+          const tokenUrl = "https://github.com/settings/tokens/new?scopes=repo,workflow,write:packages&description=icf-cli";
+          console.log(chalk.dim("Create a pre-configured token (scopes pre-selected):"));
+          console.log(chalk.cyan(tokenUrl));
+          console.log(chalk.dim("Required scopes: repo, workflow, write:packages\n"));
         }
         const { t } = await prompt({ type: "password", name: "t", message: "GitHub Personal Access Token:" }) as { t: string };
         rawToken = t;

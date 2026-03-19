@@ -25424,8 +25424,9 @@ var { prompt } = import_enquirer.default;
 function authCommand(program3) {
   const auth2 = program3.command("auth").description("Manage GitHub authentication");
   auth2.command("login").description("Authenticate with GitHub using a personal access token").option("--token <token|$VAR>", "GitHub PAT or env var reference like '$GITHUB_TOKEN'").option("--json", "Output as JSON").addHelpText("after", `
-${source_default.dim("Required token scopes: repo, write:issues")}
-Create at: https://github.com/settings/tokens/new
+${source_default.dim("Required token scopes: repo, workflow, write:packages")}
+${source_default.dim("Create a pre-configured token at:")}
+  ${source_default.cyan("https://github.com/settings/tokens/new?scopes=repo,workflow,write:packages&description=icf-cli")}
 
 ${source_default.dim("Examples:")}
   ${source_default.cyan("icf auth login")}
@@ -25449,8 +25450,10 @@ ${source_default.dim("Examples:")}
       }
     } else {
       if (!json) {
-        console.log(source_default.dim("Create a token at: https://github.com/settings/tokens/new"));
-        console.log(source_default.dim("Required scopes: repo, write:issues\n"));
+        const tokenUrl = "https://github.com/settings/tokens/new?scopes=repo,workflow,write:packages&description=icf-cli";
+        console.log(source_default.dim("Create a pre-configured token (scopes pre-selected):"));
+        console.log(source_default.cyan(tokenUrl));
+        console.log(source_default.dim("Required scopes: repo, workflow, write:packages\n"));
       }
       const { t } = await prompt({ type: "password", name: "t", message: "GitHub Personal Access Token:" });
       rawToken = t;
@@ -25575,38 +25578,183 @@ labels: "type:incident,status:open"
 **Impact:**
 <!-- Who is affected and how many users? -->
 `;
-function initCommand(program3) {
-  program3.command("init [owner/repo]").description("Bootstrap a GitHub repo as an ICF incident repository").option("--create", "Create the repository if it does not exist (required for new repos)").option("--private", "When --create: make the repo private (default)").option("--public", "When --create: make the repo public").option("--json", "Output as JSON").addHelpText("after", `
-${source_default.dim("Examples:")}
-  ${source_default.cyan("icf init BlackAsteroid/incident-report")}              Configure an existing repo
-  ${source_default.cyan("icf init my-org/incidents --create")}                Create new repo + configure
-  ${source_default.cyan("icf init my-org/incidents --create --public")}       Create as public
+var WORKFLOW_TRIAGE = `name: Incident Triage
 
-${source_default.dim("What gets created:")}
-  \u2705 Labels: severity (P0-P3), status (open/mitigating/resolved), type:incident
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  triage:
+    name: Set SLA Deadline
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    if: |
+      contains(github.event.issue.labels.*.name, 'type:incident')
+
+    steps:
+      - name: Determine severity and post SLA comment
+        uses: actions/github-script@v7
+        with:
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const labels = context.payload.issue.labels.map(l => l.name);
+            const issueNumber = context.issue.number;
+            const SEVERITY_CONFIG = {
+              'severity:P0': { level: 'P0', emoji: '\u{1F534}', slaMin: 15,  slaText: '15 min \u2014 immediate response required' },
+              'severity:P1': { level: 'P1', emoji: '\u{1F7E0}', slaMin: 30,  slaText: '30 min \u2014 urgent response required' },
+              'severity:P2': { level: 'P2', emoji: '\u{1F7E1}', slaMin: 120, slaText: '2 hours \u2014 response required this shift' },
+              'severity:P3': { level: 'P3', emoji: '\u{1F535}', slaMin: 480, slaText: '8 hours \u2014 response required today' },
+            };
+            const severityOrder = ['severity:P0', 'severity:P1', 'severity:P2', 'severity:P3'];
+            const matchedKey = severityOrder.find(k => labels.includes(k));
+            const config = matchedKey ? SEVERITY_CONFIG[matchedKey] : SEVERITY_CONFIG['severity:P3'];
+            const now = new Date();
+            const deadline = new Date(now.getTime() + config.slaMin * 60 * 1000);
+            const incidentId = \`INC-\${String(issueNumber).padStart(3, '0')}\`;
+            const body = [
+              \`## \${config.emoji} Incident Triage \u2014 Automated SLA\`,
+              '',
+              '| Field | Value |',
+              '|-------|-------|',
+              \`| **Incident** | \${incidentId} |\`,
+              \`| **Severity** | \${config.emoji} \${config.level} |\`,
+              \`| **SLA** | \${config.slaText} |\`,
+              \`| **Deadline** | \${deadline.toUTCString()} |\`,
+              '',
+              '### Response Checklist',
+              '- [ ] Incident commander assigned',
+              '- [ ] Initial assessment posted',
+              '- [ ] Stakeholders notified',
+              '- [ ] Mitigation started',
+              '',
+              \`> Use \\\`icf incident update \${incidentId} --status mitigating\\\` to update status.\`,
+              '<!-- icf-triage-comment -->',
+            ].join('\\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: issueNumber, body,
+            });
+            try {
+              await github.rest.issues.addAssignees({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issueNumber,
+                assignees: [context.payload.issue.user.login],
+              });
+            } catch(e) { console.log('Auto-assign skipped:', e.message); }
+`;
+var WORKFLOW_ESCALATION = `name: Incident Escalation
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no comments posted)'
+        required: false
+        default: 'false'
+
+jobs:
+  escalate:
+    name: Escalate Stale Incidents
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Check for stale P0/P1 incidents
+        uses: actions/github-script@v7
+        with:
+          github-token: \${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const DRY_RUN = '\${{ github.event.inputs.dry_run }}' === 'true';
+            const NOW = Date.now();
+            const THRESHOLDS = {
+              'severity:P0': 15 * 60 * 1000,
+              'severity:P1': 30 * 60 * 1000,
+            };
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner, repo: context.repo.repo,
+              state: 'open', labels: 'type:incident', per_page: 50,
+            });
+            for (const issue of issues) {
+              const labelNames = issue.labels.map(l => l.name);
+              if (labelNames.includes('status:resolved') || labelNames.includes('status:mitigating')) continue;
+              let threshold = null, severity = null, emoji = '';
+              if (labelNames.includes('severity:P0'))      { threshold = THRESHOLDS['severity:P0']; severity = 'P0'; emoji = '\u{1F534}'; }
+              else if (labelNames.includes('severity:P1')) { threshold = THRESHOLDS['severity:P1']; severity = 'P1'; emoji = '\u{1F7E0}'; }
+              if (!threshold) continue;
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: issue.number, per_page: 100,
+              });
+              const lastActivity = Math.max(
+                comments.length > 0 ? new Date(comments[comments.length-1].updated_at).getTime() : 0,
+                new Date(issue.updated_at).getTime()
+              );
+              const staleMin = Math.floor((NOW - lastActivity) / 60000);
+              if ((NOW - lastActivity) < threshold) continue;
+              const recent = comments
+                .filter(c => c.user.login === 'github-actions[bot]')
+                .filter(c => c.body.includes('<!-- icf-escalation-alert -->'))
+                .filter(c => (NOW - new Date(c.created_at).getTime()) < threshold);
+              if (recent.length > 0) continue;
+              const incidentId = \`INC-\${String(issue.number).padStart(3, '0')}\`;
+              const assignees = issue.assignees.map(a => \`@\${a.login}\`).join(', ') || '@everyone';
+              const body = [
+                \`## \u26A0\uFE0F **Escalation Alert** \u2014 \${emoji} \${severity} SLA Breach\`,
+                '',
+                \`This incident has had **no updates for \${staleMin} minutes**.\`,
+                '',
+                \`| **Incident** | \${incidentId} |\`,
+                \`| **Assigned to** | \${assignees} |\`,
+                '',
+                '<!-- icf-escalation-alert -->',
+              ].join('\\n');
+              if (DRY_RUN) { console.log('[DRY RUN] Would escalate #' + issue.number); }
+              else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  issue_number: issue.number, body,
+                });
+              }
+            }
+`;
+function initCommand(program3) {
+  program3.command("init [owner/repo]").description("Bootstrap a GitHub repo as a fully configured ICF incident repository").option("--create", "Create the repository if it does not exist").option("--private", "When --create: make the repo private (default)").option("--public", "When --create: make the repo public").option("--no-workflows", "Skip pushing ICF GitHub Actions workflows").option("--no-create", "Skip repo creation even if it doesn't exist (configure existing)").option("--json", "Output as JSON").addHelpText("after", `
+${source_default.dim("Examples:")}
+  ${source_default.cyan("icf init my-org/incident-tracker")}                        Configure existing repo
+  ${source_default.cyan("icf init my-org/incident-tracker --create")}              Create + full bootstrap
+  ${source_default.cyan("icf init my-org/incident-tracker --create --public")}     Create as public
+  ${source_default.cyan("icf init my-org/incident-tracker --no-workflows")}        Skip workflow push
+
+${source_default.dim("What gets set up:")}
+  \u2705 Labels: severity:P0-P3, status:open/mitigating/resolved, type:incident
   \u2705 Milestone: Active Incidents
-  \u2705 Issue template
-  \u2705 Default repo saved to config
+  \u2705 Issue template (.github/ISSUE_TEMPLATE/incident.md)
+  \u2705 Workflows: incident-triage.yml + incident-escalation.yml (requires workflow scope)
+  \u2705 Repo config saved locally for subsequent icf commands
+
+${source_default.dim("Token scope required for workflows: repo, workflow, write:packages")}
 `).action(async (orgRepo, opts) => {
     const auth2 = getAuth();
     if (!auth2) requireAuth(opts);
     const json = isJsonMode(opts);
-    let owner, repo;
-    if (orgRepo) {
-      const parts = orgRepo.split("/");
-      if (parts.length !== 2 || !parts[0] || !parts[1]) {
-        const msg = `Invalid format "${orgRepo}". Use owner/repo`;
-        if (json) jsonError(msg, 1);
-        errorLine(msg);
-        process.exit(1);
-      }
-      [owner, repo] = parts;
-    } else {
+    if (!orgRepo) {
       errorLine("Usage: icf init <owner/repo>");
       process.exit(1);
-      owner = "";
-      repo = "";
     }
+    const parts = orgRepo.split("/");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      const msg = `Invalid format "${orgRepo}". Use owner/repo`;
+      if (json) jsonError(msg, 1);
+      errorLine(msg);
+      process.exit(1);
+    }
+    const [owner, repo] = parts;
+    const includeWorkflows = opts.workflows !== false;
     const octokit = createOctokit(auth2);
     const results = {};
     try {
@@ -25639,15 +25787,13 @@ ${source_default.dim("What gets created:")}
           private: isPrivate,
           has_issues: true,
           auto_init: true
-        }).catch(
-          () => octokit.repos.createForAuthenticatedUser({
-            name: repo,
-            description: "Incident management powered by ICF",
-            private: isPrivate,
-            has_issues: true,
-            auto_init: true
-          })
-        );
+        }).catch(() => octokit.repos.createForAuthenticatedUser({
+          name: repo,
+          description: "Incident management powered by ICF",
+          private: isPrivate,
+          has_issues: true,
+          auto_init: true
+        }));
         repoUrl = data.html_url;
         if (!json) console.log(source_default.green("done"));
         results.repo_created = true;
@@ -25663,62 +25809,84 @@ ${source_default.dim("What gets created:")}
       results.labels_created = ICF_LABELS.length;
       if (!json) process.stdout.write("Creating milestone\u2026 ");
       const { data: milestones } = await octokit.issues.listMilestones({ owner, repo });
-      let milestoneNumber;
-      const existing = milestones.find((m) => m.title === "Active Incidents");
-      if (existing) {
-        milestoneNumber = existing.number;
+      const existingMs = milestones.find((m) => m.title === "Active Incidents");
+      let milestoneNum;
+      if (existingMs) {
+        milestoneNum = existingMs.number;
         if (!json) console.log(source_default.dim("already exists"));
       } else {
-        const { data: ms } = await octokit.issues.createMilestone({
-          owner,
-          repo,
-          title: "Active Incidents",
-          description: "All active incidents managed by ICF"
-        });
-        milestoneNumber = ms.number;
-        if (!json) console.log(source_default.green(`done (#${milestoneNumber})`));
+        const { data: ms } = await octokit.issues.createMilestone({ owner, repo, title: "Active Incidents", description: "All active incidents managed by ICF" });
+        milestoneNum = ms.number;
+        if (!json) console.log(source_default.green(`done (#${milestoneNum})`));
       }
-      results.milestone = `Active Incidents (#${milestoneNumber})`;
+      results.milestone = `Active Incidents (#${milestoneNum})`;
       if (!json) process.stdout.write("Creating issue template\u2026 ");
       const templatePath = ".github/ISSUE_TEMPLATE/incident.md";
       try {
-        const { data: existing2 } = await octokit.repos.getContent({ owner, repo, path: templatePath });
-        const sha = Array.isArray(existing2) ? void 0 : existing2.sha;
-        await octokit.repos.createOrUpdateFileContents({
-          owner,
-          repo,
-          path: templatePath,
-          message: "chore: update ICF issue template",
-          content: Buffer.from(ISSUE_TEMPLATE).toString("base64"),
-          sha
-        });
+        const { data: existing } = await octokit.repos.getContent({ owner, repo, path: templatePath });
+        const sha = Array.isArray(existing) ? void 0 : existing.sha;
+        await octokit.repos.createOrUpdateFileContents({ owner, repo, path: templatePath, message: "chore: update ICF issue template", content: Buffer.from(ISSUE_TEMPLATE).toString("base64"), sha });
       } catch {
-        await octokit.repos.createOrUpdateFileContents({
-          owner,
-          repo,
-          path: templatePath,
-          message: "chore: add ICF issue template",
-          content: Buffer.from(ISSUE_TEMPLATE).toString("base64")
-        });
+        await octokit.repos.createOrUpdateFileContents({ owner, repo, path: templatePath, message: "chore: add ICF issue template", content: Buffer.from(ISSUE_TEMPLATE).toString("base64") });
       }
       if (!json) console.log(source_default.green("done"));
       results.template_created = true;
+      if (includeWorkflows) {
+        if (!json) process.stdout.write("Pushing ICF workflows (incident-triage + incident-escalation)\u2026 ");
+        const workflows = [
+          { path: ".github/workflows/incident-triage.yml", content: WORKFLOW_TRIAGE, msg: "chore: add ICF incident-triage workflow" },
+          { path: ".github/workflows/incident-escalation.yml", content: WORKFLOW_ESCALATION, msg: "chore: add ICF incident-escalation workflow" }
+        ];
+        let workflowsOk = true;
+        for (const wf of workflows) {
+          try {
+            const sha = await getFileSha(octokit, owner, repo, wf.path);
+            await octokit.repos.createOrUpdateFileContents({ owner, repo, path: wf.path, message: wf.msg, content: Buffer.from(wf.content).toString("base64"), ...sha ? { sha } : {} });
+          } catch (e) {
+            const status = e.status;
+            if (status === 422 || status === 403) {
+              workflowsOk = false;
+              if (!json) console.log(source_default.yellow("\n\u26A0\uFE0F  Workflow push failed \u2014 token needs `workflow` scope"));
+              if (!json) console.log(source_default.dim(`   Re-run: icf auth login \u2192 ${source_default.cyan("https://github.com/settings/tokens/new?scopes=repo,workflow,write:packages&description=icf-cli")}`));
+            } else {
+              throw e;
+            }
+            break;
+          }
+        }
+        if (workflowsOk && !json) console.log(source_default.green("done"));
+        results.workflows_created = workflowsOk;
+      } else {
+        results.workflows_created = false;
+        results.workflows_skipped = true;
+      }
       saveRepo({ owner, repo });
+      const cloneUrl = repoUrl.replace("https://github.com/", "git@github.com:") + ".git";
+      const issuesUrl = `${repoUrl}/issues`;
       if (json) {
-        jsonOut({ owner, repo, url: repoUrl, ...results });
+        jsonOut({ owner, repo, repo_url: repoUrl, clone_url: cloneUrl, issues_url: issuesUrl, ...results });
       }
       console.log("");
       success(`ICF initialized in ${source_default.cyan(`${owner}/${repo}`)}
 `);
-      console.log(`  Labels created:  ${source_default.bold(ICF_LABELS.length)}`);
-      console.log(`  Milestone:       ${source_default.bold(results.milestone)}`);
-      console.log(`  Templates:       ${source_default.bold(1)}`);
+      console.log(`  Labels:      ${source_default.bold(ICF_LABELS.length)}`);
+      console.log(`  Milestone:   ${source_default.bold(results.milestone)}`);
+      console.log(`  Workflows:   ${results.workflows_created ? source_default.bold("incident-triage + incident-escalation") : source_default.yellow("skipped")}`);
+      console.log(`  Issues URL:  ${source_default.dim(issuesUrl)}`);
       console.log(`
 Run ${source_default.cyan("icf incident create")} to file your first incident.`);
     } catch (err) {
       handleError(err, opts);
     }
   });
+}
+async function getFileSha(octokit, owner, repo, path5) {
+  try {
+    const { data } = await octokit.repos.getContent({ owner, repo, path: path5 });
+    return Array.isArray(data) ? null : data.sha;
+  } catch {
+    return null;
+  }
 }
 
 // src/commands/incident.ts
