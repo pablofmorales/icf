@@ -63,4 +63,14 @@ program
     }
   });
 
+// BUG-01 fix: Commander's built-in --version flag bypasses all custom logic
+// and always outputs plain text. Intercept before Commander parses argv.
+// If user passes both --version and --json (or ICF_JSON=1), output JSON.
+const args = process.argv.slice(2);
+if ((args.includes("--version") || args.includes("-V")) &&
+    (args.includes("--json") || process.env["ICF_JSON"])) {
+  console.log(JSON.stringify({ ok: true, data: { version: VERSION, name: "@blackasteroid/icf" } }, null, 2));
+  process.exit(0);
+}
+
 program.parse(process.argv);

@@ -105,6 +105,18 @@ ${chalk.dim("Agent / pipe usage (--input-json):")}
         }
       }
 
+      // BUG-02 fix: if --input-json was used (or stdin was piped), require title + severity.
+      // Empty payload ({} or '') silently created incidents with P3 defaults — dangerous in automation.
+      if (opts.inputJson !== undefined && !process.stdin.isTTY) {
+        const missing: string[] = [];
+        if (!opts.title)    missing.push("title");
+        if (!opts.severity) missing.push("severity");
+        if (missing.length > 0) {
+          const msg = `--input-json payload is missing required fields: ${missing.join(", ")}`;
+          if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
+        }
+      }
+
       // Interactive prompts for missing required fields (only in TTY mode)
       const answers = await prompt([
         ...(!opts.title       && process.stdin.isTTY ? [{ type: "input",  name: "title",       message: "Incident title:" }] : []),
