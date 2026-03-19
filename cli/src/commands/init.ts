@@ -313,7 +313,8 @@ ${chalk.dim("Token scope required for workflows: repo, workflow, write:packages"
             } catch (e: unknown) {
               // 422/403 usually means missing `workflow` scope
               const status = (e as { status?: number }).status;
-              if (status === 422 || status === 403) {
+              // 422 = file conflict, 403 = no permission, 404 = scope missing (token lacks 'workflow')
+              if (status === 422 || status === 403 || status === 404) {
                 workflowsOk = false;
                 if (!json) console.log(chalk.yellow("\n⚠️  Workflow push failed — token needs `workflow` scope"));
                 if (!json) console.log(chalk.dim(`   Re-run: icf auth login → ${chalk.cyan("https://github.com/settings/tokens/new?scopes=repo,workflow,write:packages&description=icf-cli")}`));

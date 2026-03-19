@@ -327,9 +327,9 @@ var require_help = __commonJS({
        * @returns {string}
        */
       subcommandTerm(cmd) {
-        const args = cmd.registeredArguments.map((arg) => humanReadableArgName(arg)).join(" ");
+        const args2 = cmd.registeredArguments.map((arg) => humanReadableArgName(arg)).join(" ");
         return cmd._name + (cmd._aliases[0] ? "|" + cmd._aliases[0] : "") + (cmd.options.length ? " [options]" : "") + // simplistic check for non-help option
-        (args ? " " + args : "");
+        (args2 ? " " + args2 : "");
       }
       /**
        * Get the option term to show in the list of options.
@@ -1334,7 +1334,7 @@ var require_command = __commonJS({
           desc = null;
         }
         opts = opts || {};
-        const [, name, args] = nameAndArgs.match(/([^ ]+) *(.*)/);
+        const [, name, args2] = nameAndArgs.match(/([^ ]+) *(.*)/);
         const cmd = this.createCommand(name);
         if (desc) {
           cmd.description(desc);
@@ -1343,7 +1343,7 @@ var require_command = __commonJS({
         if (opts.isDefault) this._defaultCommandName = cmd._name;
         cmd._hidden = !!(opts.noHelp || opts.hidden);
         cmd._executableFile = opts.executableFile || null;
-        if (args) cmd.arguments(args);
+        if (args2) cmd.arguments(args2);
         this._registerCommand(cmd);
         cmd.parent = this;
         cmd.copyInheritedSettings(this);
@@ -1668,9 +1668,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @return {Command} `this` command for chaining
        */
       action(fn) {
-        const listener = (args) => {
+        const listener = (args2) => {
           const expectedArgsCount = this.registeredArguments.length;
-          const actionArgs = args.slice(0, expectedArgsCount);
+          const actionArgs = args2.slice(0, expectedArgsCount);
           if (this._storeOptionsAsProperties) {
             actionArgs[expectedArgsCount] = this;
           } else {
@@ -2210,8 +2210,8 @@ Expecting one of '${allowedValues.join("', '")}'`);
        *
        * @private
        */
-      _executeSubCommand(subcommand, args) {
-        args = args.slice();
+      _executeSubCommand(subcommand, args2) {
+        args2 = args2.slice();
         let launchWithNode = false;
         const sourceExt = [".js", ".ts", ".tsx", ".mjs", ".cjs"];
         function findFile(baseDir, baseName) {
@@ -2260,11 +2260,11 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let proc;
         if (process9.platform !== "win32") {
           if (launchWithNode) {
-            args.unshift(executableFile);
-            args = incrementNodeInspectorPort(process9.execArgv).concat(args);
-            proc = childProcess.spawn(process9.argv[0], args, { stdio: "inherit" });
+            args2.unshift(executableFile);
+            args2 = incrementNodeInspectorPort(process9.execArgv).concat(args2);
+            proc = childProcess.spawn(process9.argv[0], args2, { stdio: "inherit" });
           } else {
-            proc = childProcess.spawn(executableFile, args, { stdio: "inherit" });
+            proc = childProcess.spawn(executableFile, args2, { stdio: "inherit" });
           }
         } else {
           this._checkForMissingExecutable(
@@ -2272,9 +2272,9 @@ Expecting one of '${allowedValues.join("', '")}'`);
             executableDir,
             subcommand._name
           );
-          args.unshift(executableFile);
-          args = incrementNodeInspectorPort(process9.execArgv).concat(args);
-          proc = childProcess.spawn(process9.execPath, args, { stdio: "inherit" });
+          args2.unshift(executableFile);
+          args2 = incrementNodeInspectorPort(process9.execArgv).concat(args2);
+          proc = childProcess.spawn(process9.execPath, args2, { stdio: "inherit" });
         }
         if (!proc.killed) {
           const signals = ["SIGUSR1", "SIGUSR2", "SIGTERM", "SIGINT", "SIGHUP"];
@@ -2657,7 +2657,7 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {string[]} args
        * @return {{operands: string[], unknown: string[]}}
        */
-      parseOptions(args) {
+      parseOptions(args2) {
         const operands = [];
         const unknown = [];
         let dest = operands;
@@ -2673,12 +2673,12 @@ Expecting one of '${allowedValues.join("', '")}'`);
         let activeVariadicOption = null;
         let activeGroup = null;
         let i = 0;
-        while (i < args.length || activeGroup) {
-          const arg = activeGroup ?? args[i++];
+        while (i < args2.length || activeGroup) {
+          const arg = activeGroup ?? args2[i++];
           activeGroup = null;
           if (arg === "--") {
             if (dest === unknown) dest.push(arg);
-            dest.push(...args.slice(i));
+            dest.push(...args2.slice(i));
             break;
           }
           if (activeVariadicOption && (!maybeOption(arg) || negativeNumberArg(arg))) {
@@ -2690,13 +2690,13 @@ Expecting one of '${allowedValues.join("', '")}'`);
             const option = this._findOption(arg);
             if (option) {
               if (option.required) {
-                const value = args[i++];
+                const value = args2[i++];
                 if (value === void 0) this.optionMissingArgument(option);
                 this.emit(`option:${option.name()}`, value);
               } else if (option.optional) {
                 let value = null;
-                if (i < args.length && (!maybeOption(args[i]) || negativeNumberArg(args[i]))) {
-                  value = args[i++];
+                if (i < args2.length && (!maybeOption(args2[i]) || negativeNumberArg(args2[i]))) {
+                  value = args2[i++];
                 }
                 this.emit(`option:${option.name()}`, value);
               } else {
@@ -2732,18 +2732,18 @@ Expecting one of '${allowedValues.join("', '")}'`);
           if ((this._enablePositionalOptions || this._passThroughOptions) && operands.length === 0 && unknown.length === 0) {
             if (this._findCommand(arg)) {
               operands.push(arg);
-              unknown.push(...args.slice(i));
+              unknown.push(...args2.slice(i));
               break;
             } else if (this._getHelpCommand() && arg === this._getHelpCommand().name()) {
-              operands.push(arg, ...args.slice(i));
+              operands.push(arg, ...args2.slice(i));
               break;
             } else if (this._defaultCommandName) {
-              unknown.push(arg, ...args.slice(i));
+              unknown.push(arg, ...args2.slice(i));
               break;
             }
           }
           if (this._passThroughOptions) {
-            dest.push(arg, ...args.slice(i));
+            dest.push(arg, ...args2.slice(i));
             break;
           }
           dest.push(arg);
@@ -3072,13 +3072,13 @@ Expecting one of '${allowedValues.join("', '")}'`);
       usage(str) {
         if (str === void 0) {
           if (this._usage) return this._usage;
-          const args = this.registeredArguments.map((arg) => {
+          const args2 = this.registeredArguments.map((arg) => {
             return humanReadableArgName(arg);
           });
           return [].concat(
             this.options.length || this._helpOption !== null ? "[options]" : [],
             this.commands.length ? "[command]" : [],
-            this.registeredArguments.length ? args : []
+            this.registeredArguments.length ? args2 : []
           ).join(" ");
         }
         this._usage = str;
@@ -3393,17 +3393,17 @@ Expecting one of '${allowedValues.join("', '")}'`);
        * @param {Array} args - array of options to search for help flags
        * @private
        */
-      _outputHelpIfRequested(args) {
+      _outputHelpIfRequested(args2) {
         const helpOption = this._getHelpOption();
-        const helpRequested = helpOption && args.find((arg) => helpOption.is(arg));
+        const helpRequested = helpOption && args2.find((arg) => helpOption.is(arg));
         if (helpRequested) {
           this.outputHelp();
           this._exit(0, "commander.helpDisplayed", "(outputHelp)");
         }
       }
     };
-    function incrementNodeInspectorPort(args) {
-      return args.map((arg) => {
+    function incrementNodeInspectorPort(args2) {
+      return args2.map((arg) => {
         if (!arg.startsWith("--inspect")) {
           return arg;
         }
@@ -3871,9 +3871,9 @@ var require_utils = __commonJS({
       }
       return target;
     };
-    exports2.merge = (...args) => {
+    exports2.merge = (...args2) => {
       let target = {};
-      for (let ele of args) exports2.mixin(target, ele);
+      for (let ele of args2) exports2.mixin(target, ele);
       return target;
     };
     exports2.mixinEmitter = (obj, emitter) => {
@@ -4040,8 +4040,8 @@ var require_queue = __commonJS({
       constructor(jobRunner) {
         this._jobRunner = jobRunner;
       }
-      enqueue = (...args) => {
-        this._queue.push(args);
+      enqueue = (...args2) => {
+        this._queue.push(args2);
         this._dequeue();
       };
       destroy() {
@@ -5015,8 +5015,8 @@ var require_prompt = __commonJS({
       isValue(value) {
         return value != null && value !== "";
       }
-      resolve(value, ...args) {
-        return utils.resolve(this, value, ...args);
+      resolve(value, ...args2) {
+        return utils.resolve(this, value, ...args2);
       }
       get base() {
         return _Prompt.prototype;
@@ -7496,10 +7496,10 @@ var require_survey = __commonJS({
           this.state.header = header.join("\n   ");
         }
       }
-      async toChoices(...args) {
+      async toChoices(...args2) {
         if (this.createdScales) return false;
         this.createdScales = true;
-        let choices = await super.toChoices(...args);
+        let choices = await super.toChoices(...args2);
         for (let choice of choices) {
           choice.scale = createScale(5, this.options);
           choice.scaleIdx = 2;
@@ -7905,9 +7905,9 @@ var require_enquirer = __commonJS({
           });
         }
         let emit = prompt3.emit.bind(prompt3);
-        prompt3.emit = (...args) => {
-          this.emit.call(this, ...args);
-          return emit(...args);
+        prompt3.emit = (...args2) => {
+          this.emit.call(this, ...args2);
+          return emit(...args2);
         };
         this.emit("prompt", prompt3, this);
         if (opts.autofill && value != null) {
@@ -7983,9 +7983,9 @@ var require_enquirer = __commonJS({
         const fn = (questions, ...rest) => {
           let enquirer3 = new this(...rest);
           let emit = enquirer3.emit.bind(enquirer3);
-          enquirer3.emit = (...args) => {
-            fn.emit(...args);
-            return emit(...args);
+          enquirer3.emit = (...args2) => {
+            fn.emit(...args2);
+            return emit(...args2);
           };
           return enquirer3.prompt(questions);
         };
@@ -8073,23 +8073,23 @@ var require_code = __commonJS({
     };
     exports2._Code = _Code;
     exports2.nil = new _Code("");
-    function _(strs, ...args) {
+    function _(strs, ...args2) {
       const code = [strs[0]];
       let i = 0;
-      while (i < args.length) {
-        addCodeArg(code, args[i]);
+      while (i < args2.length) {
+        addCodeArg(code, args2[i]);
         code.push(strs[++i]);
       }
       return new _Code(code);
     }
     exports2._ = _;
     var plus = new _Code("+");
-    function str(strs, ...args) {
+    function str(strs, ...args2) {
       const expr = [safeStringify(strs[0])];
       let i = 0;
-      while (i < args.length) {
+      while (i < args2.length) {
         expr.push(plus);
-        addCodeArg(expr, args[i]);
+        addCodeArg(expr, args2[i]);
         expr.push(plus, safeStringify(strs[++i]));
       }
       optimize(expr);
@@ -8644,10 +8644,10 @@ var require_codegen = __commonJS({
       }
     };
     var Func = class extends BlockNode {
-      constructor(name, args, async) {
+      constructor(name, args2, async) {
         super();
         this.name = name;
-        this.args = args;
+        this.args = args2;
         this.async = async;
       }
       render(opts) {
@@ -8922,8 +8922,8 @@ var require_codegen = __commonJS({
         return this;
       }
       // `function` heading (or definition if funcBody is passed)
-      func(name, args = code_1.nil, async, funcBody) {
-        this._blockNode(new Func(name, args, async));
+      func(name, args2 = code_1.nil, async, funcBody) {
+        this._blockNode(new Func(name, args2, async));
         if (funcBody)
           this.code(funcBody).endFunc();
         return this;
@@ -9017,13 +9017,13 @@ var require_codegen = __commonJS({
     }
     exports2.not = not;
     var andCode = mappend(exports2.operators.AND);
-    function and(...args) {
-      return args.reduce(andCode);
+    function and(...args2) {
+      return args2.reduce(andCode);
     }
     exports2.and = and;
     var orCode = mappend(exports2.operators.OR);
-    function or(...args) {
-      return args.reduce(orCode);
+    function or(...args2) {
+      return args2.reduce(orCode);
     }
     exports2.or = or;
     function mappend(op) {
@@ -9756,8 +9756,8 @@ var require_code2 = __commonJS({
       ];
       if (it.opts.dynamicRef)
         valCxt.push([names_1.default.dynamicAnchors, names_1.default.dynamicAnchors]);
-      const args = (0, codegen_1._)`${dataAndSchema}, ${gen.object(...valCxt)}`;
-      return context !== codegen_1.nil ? (0, codegen_1._)`${func}.call(${context}, ${args})` : (0, codegen_1._)`${func}(${args})`;
+      const args2 = (0, codegen_1._)`${dataAndSchema}, ${gen.object(...valCxt)}`;
+      return context !== codegen_1.nil ? (0, codegen_1._)`${func}.call(${context}, ${args2})` : (0, codegen_1._)`${func}(${args2})`;
     }
     exports2.callValidateCode = callValidateCode;
     var newRegExp = (0, codegen_1._)`new RegExp`;
@@ -15645,7 +15645,7 @@ var require_constants = __commonJS({
 var require_debug = __commonJS({
   "node_modules/semver/internal/debug.js"(exports2, module2) {
     "use strict";
-    var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
+    var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args2) => console.error("SEMVER", ...args2) : () => {
     };
     module2.exports = debug;
   }
@@ -18531,8 +18531,8 @@ var require_colors = __commonJS({
     var proto2 = defineProps(function colors2() {
     }, styles3);
     function applyStyle2() {
-      var args = Array.prototype.slice.call(arguments);
-      var str = args.map(function(arg) {
+      var args2 = Array.prototype.slice.call(arguments);
+      var str = args2.map(function(arg) {
         if (arg != null && arg.constructor === String) {
           return arg;
         } else {
@@ -18949,8 +18949,8 @@ var require_cell = __commonJS({
       mergeTableOptions() {
       }
     };
-    function firstDefined(...args) {
-      return args.filter((v) => v !== void 0 && v !== null).shift();
+    function firstDefined(...args2) {
+      return args2.filter((v) => v !== void 0 && v !== null).shift();
     }
     function setOption(objA, objB, nameB, targetObj) {
       let nameA = nameB.split("-");
@@ -19448,8 +19448,8 @@ function bindApi(hook2, state, name) {
   hook2.api = { remove: removeHookRef };
   hook2.remove = removeHookRef;
   ["before", "error", "after", "wrap"].forEach((kind) => {
-    const args = name ? [state, kind, name] : [state, kind];
-    hook2[kind] = hook2.api[kind] = bindable(addHook, null).apply(null, args);
+    const args2 = name ? [state, kind, name] : [state, kind];
+    hook2[kind] = hook2.api[kind] = bindable(addHook, null).apply(null, args2);
   });
 }
 function Singular() {
@@ -20434,8 +20434,8 @@ var init_dist_src2 = __esm({
       static VERSION = VERSION4;
       static defaults(defaults) {
         const OctokitWithDefaults = class extends this {
-          constructor(...args) {
-            const options = args[0] || {};
+          constructor(...args2) {
+            const options = args2[0] || {};
             if (typeof defaults === "function") {
               super(defaults(options));
               return;
@@ -23023,8 +23023,8 @@ function endpointsToMethods(octokit) {
 }
 function decorate(octokit, scope, methodName, defaults, decorations) {
   const requestWithDefaults = octokit.request.defaults(defaults);
-  function withDecorations(...args) {
-    let options = requestWithDefaults.endpoint.merge(...args);
+  function withDecorations(...args2) {
+    let options = requestWithDefaults.endpoint.merge(...args2);
     if (decorations.mapToData) {
       options = Object.assign({}, options, {
         data: options[decorations.mapToData],
@@ -23042,7 +23042,7 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
       octokit.log.warn(decorations.deprecated);
     }
     if (decorations.renamedParameters) {
-      const options2 = requestWithDefaults.endpoint.merge(...args);
+      const options2 = requestWithDefaults.endpoint.merge(...args2);
       for (const [name, alias] of Object.entries(
         decorations.renamedParameters
       )) {
@@ -23058,7 +23058,7 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
       }
       return requestWithDefaults(options2);
     }
-    return requestWithDefaults(...args);
+    return requestWithDefaults(...args2);
   }
   return Object.assign(withDecorations, requestWithDefaults);
 }
@@ -24051,8 +24051,8 @@ var import_node_util = require("util");
 // node_modules/stubborn-utils/dist/attemptify_async.js
 var attemptifyAsync = (fn, options) => {
   const { onError } = options;
-  return function attemptified(...args) {
-    return fn.apply(void 0, args).catch(onError);
+  return function attemptified(...args2) {
+    return fn.apply(void 0, args2).catch(onError);
   };
 };
 var attemptify_async_default = attemptifyAsync;
@@ -24060,9 +24060,9 @@ var attemptify_async_default = attemptifyAsync;
 // node_modules/stubborn-utils/dist/attemptify_sync.js
 var attemptifySync = (fn, options) => {
   const { onError } = options;
-  return function attemptified(...args) {
+  return function attemptified(...args2) {
     try {
-      return fn.apply(void 0, args);
+      return fn.apply(void 0, args2);
     } catch (error) {
       return onError(error);
     }
@@ -24080,8 +24080,8 @@ var retryifyAsync = (fn, options) => {
     const { timeout } = options2;
     const interval = options2.interval ?? RETRY_INTERVAL;
     const timestamp = Date.now() + timeout;
-    return function attempt(...args) {
-      return fn.apply(void 0, args).catch((error) => {
+    return function attempt(...args2) {
+      return fn.apply(void 0, args2).catch((error) => {
         if (!isRetriable(error))
           throw error;
         if (Date.now() >= timestamp)
@@ -24089,9 +24089,9 @@ var retryifyAsync = (fn, options) => {
         const delay = Math.round(interval * Math.random());
         if (delay > 0) {
           const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
-          return delayPromise.then(() => attempt.apply(void 0, args));
+          return delayPromise.then(() => attempt.apply(void 0, args2));
         } else {
-          return attempt.apply(void 0, args);
+          return attempt.apply(void 0, args2);
         }
       });
     };
@@ -24105,10 +24105,10 @@ var retryifySync = (fn, options) => {
   return function retryified(options2) {
     const { timeout } = options2;
     const timestamp = Date.now() + timeout;
-    return function attempt(...args) {
+    return function attempt(...args2) {
       while (true) {
         try {
-          return fn.apply(void 0, args);
+          return fn.apply(void 0, args2);
         } catch (error) {
           if (!isRetriable(error))
             throw error;
@@ -25844,7 +25844,7 @@ ${source_default.dim("Token scope required for workflows: repo, workflow, write:
             await octokit.repos.createOrUpdateFileContents({ owner, repo, path: wf.path, message: wf.msg, content: Buffer.from(wf.content).toString("base64"), ...sha ? { sha } : {} });
           } catch (e) {
             const status = e.status;
-            if (status === 422 || status === 403) {
+            if (status === 422 || status === 403 || status === 404) {
               workflowsOk = false;
               if (!json) console.log(source_default.yellow("\n\u26A0\uFE0F  Workflow push failed \u2014 token needs `workflow` scope"));
               if (!json) console.log(source_default.dim(`   Re-run: icf auth login \u2192 ${source_default.cyan("https://github.com/settings/tokens/new?scopes=repo,workflow,write:packages&description=icf-cli")}`));
@@ -25948,27 +25948,68 @@ ${source_default.dim("Commands:")}
   ${source_default.cyan("incident comment <id>")}    Add a timeline entry
   ${source_default.cyan("incident resolve <id>")}    Close the incident with RCA
 `);
-  inc.command("create").description("Open a new incident as a GitHub Issue").option("--title <text>", "Incident title").option("--service <name>", "Affected service").option("--severity <P0-P3>", "Severity level: P0, P1, P2, P3").option("--description <text>", "Detailed description").option("--assign <login>", "Assign to GitHub user (repeatable)", collect, []).option("--repo <owner/repo>", "Target repo (default: from config)").option("--json", "Output as JSON").addHelpText("after", `
+  inc.command("create").description("Open a new incident as a GitHub Issue").option("--title <text>", "Incident title").option("--service <name>", "Affected service").option("--severity <P0-P3>", "Severity level: P0, P1, P2, P3").option("--description <text>", "Detailed description").option("--assign <login>", "Assign to GitHub user (repeatable)", collect, []).option("--repo <owner/repo>", "Target repo (default: from config)").option("--input-json [payload]", "Accept incident fields as JSON (from flag value or stdin pipe)").option("--json", "Output as JSON ({ ok, data })").addHelpText("after", `
 ${source_default.dim("Examples:")}
   ${source_default.cyan('icf incident create --title "DB pool exhausted" --service payments --severity P0 --description "..."')}
   ${source_default.cyan("icf incident create")}   (interactive mode)
   ${source_default.cyan(`icf incident create --severity P1 --service api --title "..." --json | jq '.data.id'`)}
+
+${source_default.dim("Agent / pipe usage (--input-json):")}
+  ${source_default.cyan(`icf incident create --input-json '{"title":"Down","service":"api","severity":"P1","description":"..."}'`)}
+  ${source_default.cyan(`echo '{"title":"Down","service":"api","severity":"P1"}' | icf incident create --input-json --json`)}
+  ${source_default.cyan("cat payload.json | icf incident create --input-json --json")}
 `).action(async (opts) => {
     const auth2 = getAuth();
     if (!auth2) requireAuth(opts);
     const json = isJsonMode(opts);
     const target = getRepoOrDie(opts);
     const octokit = createOctokit(auth2);
+    if (opts.inputJson !== void 0) {
+      let raw;
+      if (typeof opts.inputJson === "string") {
+        raw = opts.inputJson;
+      } else {
+        raw = !process.stdin.isTTY ? (0, import_fs.readFileSync)("/dev/stdin", "utf8").trim() : "";
+      }
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (!opts.title && parsed.title) opts.title = String(parsed.title);
+          if (!opts.service && parsed.service) opts.service = String(parsed.service);
+          if (!opts.severity && parsed.severity) opts.severity = String(parsed.severity);
+          if (!opts.description && parsed.description) opts.description = String(parsed.description);
+          if (!opts.assign.length && Array.isArray(parsed.assign)) {
+            opts.assign = parsed.assign.map(String);
+          }
+        } catch {
+          const msg = `Invalid JSON in --input-json: ${raw.slice(0, 80)}`;
+          if (json) jsonError(msg, EXIT.VALIDATION);
+          errorLine(msg);
+          process.exit(EXIT.VALIDATION);
+        }
+      }
+    }
+    if (opts.inputJson !== void 0 && !process.stdin.isTTY) {
+      const missing = [];
+      if (!opts.title) missing.push("title");
+      if (!opts.severity) missing.push("severity");
+      if (missing.length > 0) {
+        const msg = `--input-json payload is missing required fields: ${missing.join(", ")}`;
+        if (json) jsonError(msg, EXIT.VALIDATION);
+        errorLine(msg);
+        process.exit(EXIT.VALIDATION);
+      }
+    }
     const answers = await prompt2([
-      ...!opts.title ? [{ type: "input", name: "title", message: "Incident title:" }] : [],
-      ...!opts.service ? [{ type: "input", name: "service", message: "Affected service:" }] : [],
-      ...!opts.severity ? [{ type: "select", name: "severity", message: "Severity:", choices: VALID_SEVERITIES }] : [],
-      ...!opts.description ? [{ type: "input", name: "description", message: "Description:" }] : []
+      ...!opts.title && process.stdin.isTTY ? [{ type: "input", name: "title", message: "Incident title:" }] : [],
+      ...!opts.service && process.stdin.isTTY ? [{ type: "input", name: "service", message: "Affected service:" }] : [],
+      ...!opts.severity && process.stdin.isTTY ? [{ type: "select", name: "severity", message: "Severity:", choices: VALID_SEVERITIES }] : [],
+      ...!opts.description && process.stdin.isTTY ? [{ type: "input", name: "description", message: "Description:" }] : []
     ]);
     const title = opts.title ?? answers.title;
     const service = opts.service ?? answers.service;
-    const severity = (opts.severity ?? answers.severity).toUpperCase();
-    const description = opts.description ?? answers.description;
+    const severity = (opts.severity ?? answers.severity ?? "P3").toUpperCase();
+    const description = opts.description ?? answers.description ?? "";
     if (!/^[a-zA-Z0-9._\-/\s]{1,100}$/.test(service)) {
       const msg = "Service name contains invalid characters (max 100 chars, alphanumeric + . _ - / space)";
       if (json) jsonError(msg, EXIT.VALIDATION);
@@ -26611,20 +26652,39 @@ ${source_default.bold("Upgrading icf")} ${source_default.dim(`v${current}`)} \u2
 }
 
 // src/index.ts
+var import_fs3 = require("fs");
+var import_path2 = require("path");
+function readVersion() {
+  try {
+    return JSON.parse((0, import_fs3.readFileSync)((0, import_path2.join)(__dirname, "..", "package.json"), "utf8")).version;
+  } catch {
+    try {
+      return JSON.parse((0, import_fs3.readFileSync)((0, import_path2.join)(__dirname, "package.json"), "utf8")).version;
+    } catch {
+      return "unknown";
+    }
+  }
+}
+var VERSION9 = readVersion();
 var program2 = new Command();
-program2.name("icf").description("Incident Command Framework \u2014 CLI-first incident management backed by GitHub").version("0.1.0").addHelpText("beforeAll", `
+program2.name("icf").description("Incident Command Framework \u2014 CLI-first incident management backed by GitHub").version(VERSION9).addHelpText("beforeAll", `
 ${source_default.bold.red("\u{1F6A8} ICF")} \u2014 ${source_default.bold("Incident Command Framework")}
 `).addHelpText("after", `
 ${source_default.bold("Quick Start:")}
   ${source_default.cyan("icf auth login")}
-  ${source_default.cyan("icf init BlackAsteroid/incident-report")}
+  ${source_default.cyan("icf init my-org/incidents --create")}
   ${source_default.cyan('icf incident create --title "DB down" --service payments --severity P0 --description "..."')}
   ${source_default.cyan("icf incident list")}
   ${source_default.cyan('icf incident resolve INC-001 --rca "Fixed and deployed"')}
 
-${source_default.bold("JSON Mode:")}
-  ${source_default.cyan("icf incident list --json")}
-  ${source_default.cyan("ICF_JSON=1 icf incident create ...")}
+${source_default.bold("Agent / pipe usage:")}
+  ${source_default.cyan(`icf incident list --json | jq '.data[] | select(.severity == "P0")'`)}
+  ${source_default.cyan(`echo '{"title":"Down","service":"api","severity":"P1"}' | icf incident create --input-json --json`)}
+  ${source_default.cyan("ICF_JSON=1 icf incident create --input-json '{...}'")}
+
+${source_default.bold("JSON mode:")}
+  All commands support ${source_default.cyan("--json")} or ${source_default.cyan("ICF_JSON=1")} env var.
+  All responses follow: ${source_default.dim("{ ok: bool, data: {}, error?: string, code?: number }")}
 
 ${source_default.bold("Exit Codes:")} 0=ok  1=general  2=network  3=not-found  4=auth  5=validation
 ${source_default.dim("Config: ")}${getConfigPath()}
@@ -26634,6 +26694,18 @@ initCommand(program2);
 incidentCommand(program2);
 configCommand(program2);
 upgradeCommand(program2);
+program2.command("version").description("Show ICF version").option("--json", "Output as JSON").action((opts) => {
+  if (opts.json || process.env["ICF_JSON"]) {
+    console.log(JSON.stringify({ ok: true, data: { version: VERSION9, name: "@blackasteroid/icf" } }, null, 2));
+  } else {
+    console.log(VERSION9);
+  }
+});
+var args = process.argv.slice(2);
+if ((args.includes("--version") || args.includes("-V")) && (args.includes("--json") || process.env["ICF_JSON"])) {
+  console.log(JSON.stringify({ ok: true, data: { version: VERSION9, name: "@blackasteroid/icf" } }, null, 2));
+  process.exit(0);
+}
 program2.parse(process.argv);
 /*! Bundled license information:
 

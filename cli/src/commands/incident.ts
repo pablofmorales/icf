@@ -52,18 +52,25 @@ ${chalk.dim("Commands:")}
     .option("--service <name>",     "Affected service")
     .option("--severity <P0-P3>",   "Severity level: P0, P1, P2, P3")
     .option("--description <text>", "Detailed description")
-    .option("--assign <login>",     "Assign to GitHub user (repeatable)", collect, [])
-    .option("--repo <owner/repo>",  "Target repo (default: from config)")
-    .option("--json",               "Output as JSON")
+    .option("--assign <login>",       "Assign to GitHub user (repeatable)", collect, [])
+    .option("--repo <owner/repo>",    "Target repo (default: from config)")
+    .option("--input-json [payload]", "Accept incident fields as JSON (from flag value or stdin pipe)")
+    .option("--json",                 "Output as JSON ({ ok, data })")
     .addHelpText("after", `
 ${chalk.dim("Examples:")}
   ${chalk.cyan("icf incident create --title \"DB pool exhausted\" --service payments --severity P0 --description \"...\"")}
   ${chalk.cyan("icf incident create")}   (interactive mode)
   ${chalk.cyan("icf incident create --severity P1 --service api --title \"...\" --json | jq '.data.id'")}
+
+${chalk.dim("Agent / pipe usage (--input-json):")}
+  ${chalk.cyan("icf incident create --input-json '{\"title\":\"Down\",\"service\":\"api\",\"severity\":\"P1\",\"description\":\"...\"}'")}
+  ${chalk.cyan("echo '{\"title\":\"Down\",\"service\":\"api\",\"severity\":\"P1\"}' | icf incident create --input-json --json")}
+  ${chalk.cyan("cat payload.json | icf incident create --input-json --json")}
 `)
     .action(async (opts: {
       title?: string; service?: string; severity?: string;
-      description?: string; assign: string[]; repo?: string; json?: boolean;
+      description?: string; assign: string[]; repo?: string;
+      inputJson?: string | boolean; json?: boolean;
     }) => {
       const auth = getAuth();
       if (!auth) requireAuth(opts);
@@ -72,18 +79,56 @@ ${chalk.dim("Examples:")}
       const target = getRepoOrDie(opts);
       const octokit = createOctokit(auth!);
 
-      // Interactive prompts for missing required fields
+      // --input-json: parse from flag value or stdin
+      if (opts.inputJson !== undefined) {
+        let raw: string;
+        if (typeof opts.inputJson === "string") {
+          raw = opts.inputJson;
+        } else {
+          // boolean true means --input-json was passed without value — read from stdin
+          raw = !process.stdin.isTTY ? readFileSync("/dev/stdin", "utf8").trim() : "";
+        }
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as Record<string, unknown>;
+            if (!opts.title       && parsed.title)       opts.title       = String(parsed.title);
+            if (!opts.service     && parsed.service)     opts.service     = String(parsed.service);
+            if (!opts.severity    && parsed.severity)    opts.severity    = String(parsed.severity);
+            if (!opts.description && parsed.description) opts.description = String(parsed.description);
+            if (!opts.assign.length && Array.isArray(parsed.assign)) {
+              opts.assign = (parsed.assign as unknown[]).map(String);
+            }
+          } catch {
+            const msg = `Invalid JSON in --input-json: ${raw.slice(0, 80)}`;
+            if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
+          }
+        }
+      }
+
+      // BUG-02 fix: if --input-json was used (or stdin was piped), require title + severity.
+      // Empty payload ({} or '') silently created incidents with P3 defaults — dangerous in automation.
+      if (opts.inputJson !== undefined && !process.stdin.isTTY) {
+        const missing: string[] = [];
+        if (!opts.title)    missing.push("title");
+        if (!opts.severity) missing.push("severity");
+        if (missing.length > 0) {
+          const msg = `--input-json payload is missing required fields: ${missing.join(", ")}`;
+          if (json) jsonError(msg, EXIT.VALIDATION); errorLine(msg); process.exit(EXIT.VALIDATION);
+        }
+      }
+
+      // Interactive prompts for missing required fields (only in TTY mode)
       const answers = await prompt([
-        ...(!opts.title       ? [{ type: "input",  name: "title",       message: "Incident title:" }] : []),
-        ...(!opts.service     ? [{ type: "input",  name: "service",     message: "Affected service:" }] : []),
-        ...(!opts.severity    ? [{ type: "select", name: "severity",    message: "Severity:", choices: VALID_SEVERITIES }] : []),
-        ...(!opts.description ? [{ type: "input",  name: "description", message: "Description:" }] : []),
+        ...(!opts.title       && process.stdin.isTTY ? [{ type: "input",  name: "title",       message: "Incident title:" }] : []),
+        ...(!opts.service     && process.stdin.isTTY ? [{ type: "input",  name: "service",     message: "Affected service:" }] : []),
+        ...(!opts.severity    && process.stdin.isTTY ? [{ type: "select", name: "severity",    message: "Severity:", choices: VALID_SEVERITIES }] : []),
+        ...(!opts.description && process.stdin.isTTY ? [{ type: "input",  name: "description", message: "Description:" }] : []),
       ]);
 
       const title       = opts.title       ?? answers.title;
       const service     = opts.service     ?? answers.service;
-      const severity    = (opts.severity   ?? answers.severity).toUpperCase();
-      const description = opts.description ?? answers.description;
+      const severity    = (opts.severity   ?? answers.severity ?? "P3").toUpperCase();
+      const description = opts.description ?? answers.description ?? "";
 
       // Validate service name to prevent injection / garbage data
       if (!/^[a-zA-Z0-9._\-/\s]{1,100}$/.test(service)) {
