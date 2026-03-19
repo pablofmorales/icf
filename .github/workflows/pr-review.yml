@@ -10,16 +10,14 @@ permissions:
 
 jobs:
   review:
-    # Only run on PRs from within the same repo (not forks)
-    # Prevents GH_PAT exfiltration via malicious PRs from forks
+    # Only run on PRs from within the same repo (not forks).
+    # Fork PRs do not have access to secrets, but running on them still
+    # executes untrusted code on our self-hosted runner with our environment.
+    # Prevents GH_PAT exfiltration via malicious PRs from forks.
+    # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     timeout-minutes: 5
-    # Only run on PRs from within this repo — not from forks.
-    # Fork PRs do not have access to secrets, but running on them still
-    # executes untrusted code on our self-hosted runner with our environment.
-    # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
-    if: github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout pr-review-agents
