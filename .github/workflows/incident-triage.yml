@@ -8,6 +8,8 @@ jobs:
   triage:
     name: Set SLA Deadline
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     if: |
       contains(github.event.issue.labels.*.name, 'type:incident')
 
