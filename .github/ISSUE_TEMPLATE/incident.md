@@ -1,17 +1,14 @@
 ---
 name: Incident Report
-about: Report a production incident
+about: Report a production incident managed by ICF
 title: "[INCIDENT] "
-labels: "type: incident, icf"
+labels: "type:incident,status:open"
 ---
+**Service:** 
+**Severity:** P0 / P1 / P2 / P3
 
-<!-- Fill in the details below. The ICF data block at the bottom is managed by the CLI. -->
+**Description:**
+<!-- What is happening? -->
 
-## What happened?
-<!-- Brief description of the incident -->
-
-## Impact
-<!-- Who is affected and how? -->
-
-## Current Status
-<!-- What is being done right now? -->
+**Impact:**
+<!-- Who is affected and how many users? -->
