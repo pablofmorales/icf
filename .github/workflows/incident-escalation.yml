@@ -21,10 +21,16 @@ jobs:
     steps:
       - name: Check for stale P0/P1 incidents
         uses: actions/github-script@v7
+        # Security fix #47: pass workflow_dispatch inputs via env vars instead of
+        # interpolating them directly into the script string. Direct interpolation
+        # of ${{ github.event.inputs.dry_run }} could be used for expression injection
+        # if the input is ever sourced from an untrusted origin.
+        env:
+          DRY_RUN_INPUT: ${{ github.event.inputs.dry_run || 'false' }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const DRY_RUN = '${{ github.event.inputs.dry_run }}' === 'true';
+            const DRY_RUN = process.env.DRY_RUN_INPUT === 'true';
             const NOW = Date.now();
 
             // Thresholds in ms

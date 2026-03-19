@@ -1,10 +1,13 @@
 import { Command } from "commander";
-import { execSync } from "child_process";
+import { spawnSync } from "child_process";
 import { readFileSync } from "fs";
 import { join } from "path";
 import chalk from "chalk";
 import { isJsonMode, jsonOut, jsonError, success } from "../utils/format.js";
 import { EXIT } from "../utils/errors.js";
+
+/** Validate that a version string is a safe semver before passing to npm. */
+const SEMVER_RE = /^\d+\.\d+\.\d+(?:-[a-zA-Z0-9._-]+)?(?:\+[a-zA-Z0-9._-]+)?$/;
 
 interface GithubRelease {
   tag_name: string;
@@ -97,26 +100,45 @@ ${chalk.dim("Examples:")}
         console.log(`\n${chalk.bold("Upgrading icf")} ${chalk.dim(`v${current}`)} → ${chalk.green(`v${latest}`)}…`);
       }
 
+      // Security fix #46: validate version before using in npm install.
+      // Reject anything that doesn't look like a semver to prevent shell injection.
+      if (!SEMVER_RE.test(latest)) {
+        const msg = `Received invalid version string from registry: "${latest}"`;
+        if (json) jsonError(msg, EXIT.GENERAL);
+        console.error(chalk.red(`\n❌ ${msg}`));
+        process.exit(EXIT.GENERAL);
+      }
+
       try {
-        // Pin exact version (not @latest) to reduce supply-chain risk
-        execSync(`npm install -g @blackasteroid/icf@${latest}`, {
-          stdio: json ? "pipe" : "inherit",
-        });
+        // Security fix #46: use spawnSync with an args array instead of execSync
+        // with string interpolation — prevents shell injection regardless of version string.
+        const result = spawnSync(
+          "npm",
+          ["install", "-g", `@blackasteroid/icf@${latest}`],
+          { stdio: json ? "pipe" : "inherit", shell: false }
+        );
+
+        if (result.status !== 0) {
+          const raw = result.stderr?.toString() ?? "";
+          const isPermission = /permission|eacces|eperm/i.test(raw);
+          if (json) {
+            jsonError(
+              isPermission ? "Permission denied. Try running with elevated permissions (sudo)." : `Upgrade failed: ${raw}`,
+              isPermission ? EXIT.AUTH : EXIT.GENERAL
+            );
+          }
+          if (isPermission) {
+            console.error(chalk.red("\n❌ Permission denied.") + " Try:\n" + chalk.cyan("   sudo icf upgrade"));
+          } else {
+            console.error(chalk.red(`\n❌ Upgrade failed.`));
+          }
+          process.exit(isPermission ? EXIT.AUTH : EXIT.GENERAL);
+        }
       } catch (err: unknown) {
         const raw = err instanceof Error ? err.message : String(err);
-        const isPermission = /permission|eacces|eperm/i.test(raw);
-        if (json) {
-          jsonError(
-            isPermission ? "Permission denied. Try running with elevated permissions (sudo)." : `Upgrade failed: ${raw}`,
-            isPermission ? EXIT.AUTH : EXIT.GENERAL
-          );
-        }
-        if (isPermission) {
-          console.error(chalk.red("\n❌ Permission denied.") + " Try:\n" + chalk.cyan("   sudo icf upgrade"));
-        } else {
-          console.error(chalk.red(`\n❌ Upgrade failed: ${raw}`));
-        }
-        process.exit(isPermission ? EXIT.AUTH : EXIT.GENERAL);
+        if (json) jsonError(`Upgrade failed: ${raw}`, EXIT.GENERAL);
+        console.error(chalk.red(`\n❌ Upgrade failed: ${raw}`));
+        process.exit(EXIT.GENERAL);
       }
 
       if (json) jsonOut({ current, latest, upgraded: true });
