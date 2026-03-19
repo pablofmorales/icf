@@ -1,3 +1,13 @@
+## [1.2.1](https://github.com/BlackAsteroid/icf/compare/v1.2.0...v1.2.1) (2026-03-19)
+
+### 🐛 Bug Fixes
+
+* **security:** shell injection [#46](https://github.com/BlackAsteroid/icf/issues/46), expression injection [#47](https://github.com/BlackAsteroid/icf/issues/47), remove dist/ [#48](https://github.com/BlackAsteroid/icf/issues/48) ([c1a55da](https://github.com/BlackAsteroid/icf/commit/c1a55dacf9c9e62a7806ed511b47bd33b57944c1))
+
+### 📚 Documentation
+
+* improve --help, humanize README, agent usage section ([7cfe885](https://github.com/BlackAsteroid/icf/commit/7cfe88533c37348c74cd2cab4be9a999f93ea8f6)), closes [#9](https://github.com/BlackAsteroid/icf/issues/9) [#11](https://github.com/BlackAsteroid/icf/issues/11)
+
 ## [1.2.0](https://github.com/BlackAsteroid/icf/compare/v1.1.0...v1.2.0) (2026-03-19)
 
 ### 🚀 Features
