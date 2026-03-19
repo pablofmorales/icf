@@ -1,0 +1,144 @@
+name: Incident Escalation
+
+on:
+  schedule:
+    # Run every 10 minutes to check for stale incidents
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (no comments posted)'
+        required: false
+        default: 'false'
+
+jobs:
+  escalate:
+    name: Escalate Stale Incidents
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check for stale P0/P1 incidents
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const DRY_RUN = '${{ github.event.inputs.dry_run }}' === 'true';
+            const NOW = Date.now();
+
+            // Thresholds in ms
+            const THRESHOLDS = {
+              'severity:P0': 15 * 60 * 1000,   // 15 min no update → escalate
+              'severity:P1': 30 * 60 * 1000,   // 30 min no update → escalate
+            };
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'type:incident',
+              per_page: 50,
+            });
+
+            console.log(`Found ${issues.length} open incidents`);
+
+            for (const issue of issues) {
+              const labelNames = issue.labels.map(l => l.name);
+
+              // Skip resolved/mitigated
+              if (labelNames.includes('status:resolved') || labelNames.includes('status:mitigating')) {
+                console.log(`#${issue.number} — skipping (status resolved/mitigating)`);
+                continue;
+              }
+
+              // Determine applicable threshold
+              let threshold = null;
+              let severity = null;
+              let emoji = '';
+
+              if (labelNames.includes('severity:P0')) {
+                threshold = THRESHOLDS['severity:P0'];
+                severity = 'P0';
+                emoji = '🔴';
+              } else if (labelNames.includes('severity:P1')) {
+                threshold = THRESHOLDS['severity:P1'];
+                severity = 'P1';
+                emoji = '🟠';
+              }
+
+              if (!threshold) {
+                console.log(`#${issue.number} — no escalation threshold for this severity`);
+                continue;
+              }
+
+              // Get last activity: most recent comment or issue update
+              const { data: comments } = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                per_page: 100,
+              });
+
+              const lastCommentTime = comments.length > 0
+                ? new Date(comments[comments.length - 1].updated_at).getTime()
+                : 0;
+              const issueUpdateTime = new Date(issue.updated_at).getTime();
+              const lastActivity = Math.max(lastCommentTime, issueUpdateTime);
+              const staleSince = NOW - lastActivity;
+              const staleMinutes = Math.floor(staleSince / 60000);
+
+              console.log(`#${issue.number} (${severity}) — last activity ${staleMinutes}min ago`);
+
+              if (staleSince < threshold) {
+                console.log(`  → within SLA, no escalation needed`);
+                continue;
+              }
+
+              // Check if we already posted an escalation in the last threshold period
+              // to avoid spam (look for our escalation marker in recent comments)
+              const recentEscalation = comments
+                .filter(c => c.body.includes('⚠️ **Escalation Alert**'))
+                .filter(c => (NOW - new Date(c.created_at).getTime()) < threshold);
+
+              if (recentEscalation.length > 0) {
+                console.log(`  → already escalated recently, skipping`);
+                continue;
+              }
+
+              const incidentId = `INC-${String(issue.number).padStart(3, '0')}`;
+              const assignees = issue.assignees.map(a => `@${a.login}`).join(', ') || '@everyone';
+
+              const body = [
+                `## ⚠️ **Escalation Alert** — ${emoji} ${severity} SLA Breach`,
+                ``,
+                `This incident has had **no updates for ${staleMinutes} minutes**.`,
+                ``,
+                `| Field | Value |`,
+                `|-------|-------|`,
+                `| **Incident** | ${incidentId} |`,
+                `| **Severity** | ${emoji} ${severity} |`,
+                `| **Stale since** | ${staleMinutes} min |`,
+                `| **SLA threshold** | ${threshold / 60000} min |`,
+                `| **Assigned to** | ${assignees} |`,
+                ``,
+                `### Required actions:`,
+                `- [ ] Post a status update on this incident`,
+                `- [ ] Confirm incident commander is active`,
+                `- [ ] If not resolved, escalate to next level`,
+                ``,
+                `> Run \`icf incident update ${incidentId} --status mitigating\` to acknowledge.`,
+                `> Run \`icf incident timeline ${incidentId} --event "Status update: ..."\` to add context.`,
+              ].join('\n');
+
+              if (DRY_RUN) {
+                console.log(`[DRY RUN] Would post escalation to #${issue.number}:`);
+                console.log(body);
+              } else {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body,
+                });
+                console.log(`  → Escalation posted to #${issue.number}`);
+              }
+            }
