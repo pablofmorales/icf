@@ -9,12 +9,22 @@ import { handleError, EXIT } from "../utils/errors.js";
 const { prompt } = enquirer as any;
 
 export function authCommand(program: Command): void {
-  const auth = program.command("auth").description("Manage GitHub authentication");
+  const auth = program
+    .command("auth")
+    .description("Authenticate with GitHub using a personal access token")
+    .addHelpText("after", `
+${chalk.dim("Subcommands:")}
+  ${chalk.cyan("auth login")}    Store a GitHub token
+  ${chalk.cyan("auth status")}   Show who you're logged in as
+  ${chalk.cyan("auth logout")}   Remove stored credentials
+
+${chalk.dim("Run")} ${chalk.cyan("icf auth <subcommand> --help")} ${chalk.dim("for examples.")}
+`);
 
   // LOGIN
   auth
     .command("login")
-    .description("Authenticate with GitHub using a personal access token")
+    .description("Store a GitHub token and verify it has the right scopes")
     .option("--token <token|$VAR>", "GitHub PAT or env var reference like '$GITHUB_TOKEN'")
     .option("--json", "Output as JSON")
     .addHelpText("after", `

@@ -32,16 +32,19 @@ const VALID_STATUSES   = ["open", "mitigating", "resolved"];
 export function incidentCommand(program: Command): void {
   const inc = program
     .command("incident")
-    .description("Manage incidents — create, list, show, update, resolve")
+    .description("Open, track, and resolve service incidents")
     .addHelpText("after", `
-${chalk.dim("Commands:")}
-  ${chalk.cyan("incident create")}          Open a new incident
-  ${chalk.cyan("incident list")}            List open incidents
-  ${chalk.cyan("incident show <id>")}       Show full incident details
-  ${chalk.cyan("incident update <id>")}     Change severity, service, or title
-  ${chalk.cyan("incident mitigate <id>")}   Transition to mitigating status
-  ${chalk.cyan("incident comment <id>")}    Add a timeline entry
-  ${chalk.cyan("incident resolve <id>")}    Close the incident with RCA
+${chalk.dim("Subcommands:")}
+  ${chalk.cyan("incident create")}            Open a new incident
+  ${chalk.cyan("incident list")}              List open incidents
+  ${chalk.cyan("incident show <id>")}         Show full details and timeline
+  ${chalk.cyan("incident update <id>")}       Change severity, service, or title
+  ${chalk.cyan("incident mitigate <id>")}     Mark as being actively mitigated
+  ${chalk.cyan("incident comment <id>")}      Add a timestamped timeline entry
+  ${chalk.cyan("incident resolve <id>")}      Close the incident and record the root cause
+
+${chalk.dim("IDs are")} ${chalk.cyan("INC-001")} ${chalk.dim("format (matching the GitHub issue number).")}
+${chalk.dim("Run")} ${chalk.cyan("icf incident <subcommand> --help")} ${chalk.dim("for examples.")}
 `);
 
   // ── CREATE ──────────────────────────────────────────────────────────────────
