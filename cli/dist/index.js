@@ -25948,27 +25948,57 @@ ${source_default.dim("Commands:")}
   ${source_default.cyan("incident comment <id>")}    Add a timeline entry
   ${source_default.cyan("incident resolve <id>")}    Close the incident with RCA
 `);
-  inc.command("create").description("Open a new incident as a GitHub Issue").option("--title <text>", "Incident title").option("--service <name>", "Affected service").option("--severity <P0-P3>", "Severity level: P0, P1, P2, P3").option("--description <text>", "Detailed description").option("--assign <login>", "Assign to GitHub user (repeatable)", collect, []).option("--repo <owner/repo>", "Target repo (default: from config)").option("--json", "Output as JSON").addHelpText("after", `
+  inc.command("create").description("Open a new incident as a GitHub Issue").option("--title <text>", "Incident title").option("--service <name>", "Affected service").option("--severity <P0-P3>", "Severity level: P0, P1, P2, P3").option("--description <text>", "Detailed description").option("--assign <login>", "Assign to GitHub user (repeatable)", collect, []).option("--repo <owner/repo>", "Target repo (default: from config)").option("--input-json [payload]", "Accept incident fields as JSON (from flag value or stdin pipe)").option("--json", "Output as JSON ({ ok, data })").addHelpText("after", `
 ${source_default.dim("Examples:")}
   ${source_default.cyan('icf incident create --title "DB pool exhausted" --service payments --severity P0 --description "..."')}
   ${source_default.cyan("icf incident create")}   (interactive mode)
   ${source_default.cyan(`icf incident create --severity P1 --service api --title "..." --json | jq '.data.id'`)}
+
+${source_default.dim("Agent / pipe usage (--input-json):")}
+  ${source_default.cyan(`icf incident create --input-json '{"title":"Down","service":"api","severity":"P1","description":"..."}'`)}
+  ${source_default.cyan(`echo '{"title":"Down","service":"api","severity":"P1"}' | icf incident create --input-json --json`)}
+  ${source_default.cyan("cat payload.json | icf incident create --input-json --json")}
 `).action(async (opts) => {
     const auth2 = getAuth();
     if (!auth2) requireAuth(opts);
     const json = isJsonMode(opts);
     const target = getRepoOrDie(opts);
     const octokit = createOctokit(auth2);
+    if (opts.inputJson !== void 0) {
+      let raw;
+      if (typeof opts.inputJson === "string") {
+        raw = opts.inputJson;
+      } else {
+        raw = !process.stdin.isTTY ? (0, import_fs.readFileSync)("/dev/stdin", "utf8").trim() : "";
+      }
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (!opts.title && parsed.title) opts.title = String(parsed.title);
+          if (!opts.service && parsed.service) opts.service = String(parsed.service);
+          if (!opts.severity && parsed.severity) opts.severity = String(parsed.severity);
+          if (!opts.description && parsed.description) opts.description = String(parsed.description);
+          if (!opts.assign.length && Array.isArray(parsed.assign)) {
+            opts.assign = parsed.assign.map(String);
+          }
+        } catch {
+          const msg = `Invalid JSON in --input-json: ${raw.slice(0, 80)}`;
+          if (json) jsonError(msg, EXIT.VALIDATION);
+          errorLine(msg);
+          process.exit(EXIT.VALIDATION);
+        }
+      }
+    }
     const answers = await prompt2([
-      ...!opts.title ? [{ type: "input", name: "title", message: "Incident title:" }] : [],
-      ...!opts.service ? [{ type: "input", name: "service", message: "Affected service:" }] : [],
-      ...!opts.severity ? [{ type: "select", name: "severity", message: "Severity:", choices: VALID_SEVERITIES }] : [],
-      ...!opts.description ? [{ type: "input", name: "description", message: "Description:" }] : []
+      ...!opts.title && process.stdin.isTTY ? [{ type: "input", name: "title", message: "Incident title:" }] : [],
+      ...!opts.service && process.stdin.isTTY ? [{ type: "input", name: "service", message: "Affected service:" }] : [],
+      ...!opts.severity && process.stdin.isTTY ? [{ type: "select", name: "severity", message: "Severity:", choices: VALID_SEVERITIES }] : [],
+      ...!opts.description && process.stdin.isTTY ? [{ type: "input", name: "description", message: "Description:" }] : []
     ]);
     const title = opts.title ?? answers.title;
     const service = opts.service ?? answers.service;
-    const severity = (opts.severity ?? answers.severity).toUpperCase();
-    const description = opts.description ?? answers.description;
+    const severity = (opts.severity ?? answers.severity ?? "P3").toUpperCase();
+    const description = opts.description ?? answers.description ?? "";
     if (!/^[a-zA-Z0-9._\-/\s]{1,100}$/.test(service)) {
       const msg = "Service name contains invalid characters (max 100 chars, alphanumeric + . _ - / space)";
       if (json) jsonError(msg, EXIT.VALIDATION);
@@ -26611,20 +26641,39 @@ ${source_default.bold("Upgrading icf")} ${source_default.dim(`v${current}`)} \u2
 }
 
 // src/index.ts
+var import_fs3 = require("fs");
+var import_path2 = require("path");
+function readVersion() {
+  try {
+    return JSON.parse((0, import_fs3.readFileSync)((0, import_path2.join)(__dirname, "..", "package.json"), "utf8")).version;
+  } catch {
+    try {
+      return JSON.parse((0, import_fs3.readFileSync)((0, import_path2.join)(__dirname, "package.json"), "utf8")).version;
+    } catch {
+      return "unknown";
+    }
+  }
+}
+var VERSION9 = readVersion();
 var program2 = new Command();
-program2.name("icf").description("Incident Command Framework \u2014 CLI-first incident management backed by GitHub").version("0.1.0").addHelpText("beforeAll", `
+program2.name("icf").description("Incident Command Framework \u2014 CLI-first incident management backed by GitHub").version(VERSION9).addHelpText("beforeAll", `
 ${source_default.bold.red("\u{1F6A8} ICF")} \u2014 ${source_default.bold("Incident Command Framework")}
 `).addHelpText("after", `
 ${source_default.bold("Quick Start:")}
   ${source_default.cyan("icf auth login")}
-  ${source_default.cyan("icf init BlackAsteroid/incident-report")}
+  ${source_default.cyan("icf init my-org/incidents --create")}
   ${source_default.cyan('icf incident create --title "DB down" --service payments --severity P0 --description "..."')}
   ${source_default.cyan("icf incident list")}
   ${source_default.cyan('icf incident resolve INC-001 --rca "Fixed and deployed"')}
 
-${source_default.bold("JSON Mode:")}
-  ${source_default.cyan("icf incident list --json")}
-  ${source_default.cyan("ICF_JSON=1 icf incident create ...")}
+${source_default.bold("Agent / pipe usage:")}
+  ${source_default.cyan(`icf incident list --json | jq '.data[] | select(.severity == "P0")'`)}
+  ${source_default.cyan(`echo '{"title":"Down","service":"api","severity":"P1"}' | icf incident create --input-json --json`)}
+  ${source_default.cyan("ICF_JSON=1 icf incident create --input-json '{...}'")}
+
+${source_default.bold("JSON mode:")}
+  All commands support ${source_default.cyan("--json")} or ${source_default.cyan("ICF_JSON=1")} env var.
+  All responses follow: ${source_default.dim("{ ok: bool, data: {}, error?: string, code?: number }")}
 
 ${source_default.bold("Exit Codes:")} 0=ok  1=general  2=network  3=not-found  4=auth  5=validation
 ${source_default.dim("Config: ")}${getConfigPath()}
@@ -26634,6 +26683,13 @@ initCommand(program2);
 incidentCommand(program2);
 configCommand(program2);
 upgradeCommand(program2);
+program2.command("version").description("Show ICF version").option("--json", "Output as JSON").action((opts) => {
+  if (opts.json || process.env["ICF_JSON"]) {
+    console.log(JSON.stringify({ ok: true, data: { version: VERSION9, name: "@blackasteroid/icf" } }, null, 2));
+  } else {
+    console.log(VERSION9);
+  }
+});
 program2.parse(process.argv);
 /*! Bundled license information:
 
