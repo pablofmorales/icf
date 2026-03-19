@@ -20045,8 +20045,8 @@ function isPlainObject2(value) {
   return typeof Ctor === "function" && Ctor instanceof Ctor && Function.prototype.call(Ctor) === Function.prototype.call(value);
 }
 async function fetchWrapper(requestOptions) {
-  const fetch = requestOptions.request?.fetch || globalThis.fetch;
-  if (!fetch) {
+  const fetch2 = requestOptions.request?.fetch || globalThis.fetch;
+  if (!fetch2) {
     throw new Error(
       "fetch is not set. Please pass a fetch implementation as new Octokit({ request: { fetch }}). Learn more at https://github.com/octokit/octokit.js/#fetch-missing"
     );
@@ -20062,7 +20062,7 @@ async function fetchWrapper(requestOptions) {
   );
   let fetchResponse;
   try {
-    fetchResponse = await fetch(requestOptions.url, {
+    fetchResponse = await fetch2(requestOptions.url, {
       method: requestOptions.method,
       body,
       redirect: requestOptions.request?.redirect,
@@ -26337,6 +26337,111 @@ function configCommand(program3) {
   });
 }
 
+// src/commands/upgrade.ts
+var import_child_process = require("child_process");
+var import_fs2 = require("fs");
+var import_path = require("path");
+async function fetchLatestRelease() {
+  try {
+    const res = await fetch(
+      "https://registry.npmjs.org/@blackasteroid/icf/latest",
+      { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(1e4) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.version) return null;
+    return { tag_name: data.version, html_url: `https://www.npmjs.com/package/@blackasteroid/icf` };
+  } catch {
+    return null;
+  }
+}
+function compareSemver(a, b) {
+  const pa = a.replace(/^v/, "").split(".").map(Number);
+  const pb = b.replace(/^v/, "").split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const diff = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (diff < 0) return -1;
+    if (diff > 0) return 1;
+  }
+  return 0;
+}
+function readCurrentVersion() {
+  try {
+    const pkgPath = (0, import_path.join)(__dirname, "..", "package.json");
+    const raw = (0, import_fs2.readFileSync)(pkgPath, "utf8");
+    const pkg = JSON.parse(raw);
+    if (pkg.version) return pkg.version;
+  } catch {
+  }
+  try {
+    const pkgPath = (0, import_path.join)(__dirname, "package.json");
+    const raw = (0, import_fs2.readFileSync)(pkgPath, "utf8");
+    const pkg = JSON.parse(raw);
+    if (pkg.version) return pkg.version;
+  } catch {
+  }
+  return "unknown";
+}
+function upgradeCommand(program3) {
+  program3.command("upgrade").description("Update icf to the latest version from npm").option("--json", "Output as JSON ({ ok, data })").addHelpText("after", `
+${source_default.dim("Examples:")}
+  ${source_default.cyan("icf upgrade")}
+  ${source_default.cyan("icf upgrade --json")}
+`).action(async (opts) => {
+    const json = isJsonMode(opts);
+    const current = readCurrentVersion();
+    if (!json) {
+      console.log(`Current version: ${source_default.cyan(`v${current}`)}`);
+      process.stdout.write("Checking for latest release\u2026 ");
+    }
+    const release = await fetchLatestRelease();
+    if (!release) {
+      if (!json) console.log(source_default.red("failed"));
+      const msg = "Could not reach npm registry. Check your internet connection and try again.";
+      if (json) jsonError(msg, EXIT.NETWORK);
+      console.error(source_default.red(`
+\u274C ${msg}`));
+      process.exit(EXIT.NETWORK);
+    }
+    const latest = release.tag_name.replace(/^v/, "");
+    if (!json) console.log(source_default.green("done"));
+    if (compareSemver(current, latest) >= 0) {
+      if (json) jsonOut({ current, latest, upgraded: false, reason: "Already up to date" });
+      console.log(`Latest version: ${source_default.cyan(`v${latest}`)}
+${source_default.green("\u2705 Already up to date \u2014 nothing to do.")}`);
+      return;
+    }
+    if (!json) {
+      console.log(`Latest version:  ${source_default.cyan(`v${latest}`)}`);
+      console.log(`
+${source_default.bold("Upgrading icf")} ${source_default.dim(`v${current}`)} \u2192 ${source_default.green(`v${latest}`)}\u2026`);
+    }
+    try {
+      (0, import_child_process.execSync)(`npm install -g @blackasteroid/icf@${latest}`, {
+        stdio: json ? "pipe" : "inherit"
+      });
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err);
+      const isPermission = /permission|eacces|eperm/i.test(raw);
+      if (json) {
+        jsonError(
+          isPermission ? "Permission denied. Try running with elevated permissions (sudo)." : `Upgrade failed: ${raw}`,
+          isPermission ? EXIT.AUTH : EXIT.GENERAL
+        );
+      }
+      if (isPermission) {
+        console.error(source_default.red("\n\u274C Permission denied.") + " Try:\n" + source_default.cyan("   sudo icf upgrade"));
+      } else {
+        console.error(source_default.red(`
+\u274C Upgrade failed: ${raw}`));
+      }
+      process.exit(isPermission ? EXIT.AUTH : EXIT.GENERAL);
+    }
+    if (json) jsonOut({ current, latest, upgraded: true });
+    success(`icf upgraded to v${latest} successfully!`);
+  });
+}
+
 // src/index.ts
 var program2 = new Command();
 program2.name("icf").description("Incident Command Framework \u2014 CLI-first incident management backed by GitHub").version("0.1.0").addHelpText("beforeAll", `
@@ -26360,6 +26465,7 @@ authCommand(program2);
 initCommand(program2);
 incidentCommand(program2);
 configCommand(program2);
+upgradeCommand(program2);
 program2.parse(process.argv);
 /*! Bundled license information:
 

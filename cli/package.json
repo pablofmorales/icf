@@ -10,7 +10,9 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run"
   },
   "keywords": [
     "incident-management",
@@ -44,8 +46,15 @@
     "enquirer": "^2.4.1"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.6",
+    "@semantic-release/npm": "^13.1.5",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.19.15",
+    "conventional-changelog-conventionalcommits": "^9.3.0",
+    "semantic-release": "^25.0.3",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   }

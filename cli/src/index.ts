@@ -4,6 +4,7 @@ import { authCommand    } from "./commands/auth.js";
 import { initCommand    } from "./commands/init.js";
 import { incidentCommand} from "./commands/incident.js";
 import { configCommand  } from "./commands/config.js";
+import { upgradeCommand } from "./commands/upgrade.js";
 import { getConfigPath  } from "./config.js";
 
 const program = new Command();
@@ -33,5 +34,6 @@ authCommand(program);
 initCommand(program);
 incidentCommand(program);
 configCommand(program);
+upgradeCommand(program);
 
 program.parse(process.argv);
