@@ -25607,14 +25607,17 @@ ${source_default.dim("What gets created:")}
     const results = {};
     try {
       let repoUrl = "";
-      let repoExists = false;
+      let repoExists = true;
       try {
         const { data } = await octokit.repos.get({ owner, repo });
         repoUrl = data.html_url;
-        repoExists = true;
         if (!json) console.log(source_default.dim(`Repository ${owner}/${repo} exists \u2014 configuring\u2026`));
-      } catch {
-        repoExists = false;
+      } catch (e) {
+        if (e.status === 404) {
+          repoExists = false;
+        } else {
+          throw e;
+        }
       }
       if (!repoExists) {
         if (!opts.create) {

@@ -65,16 +65,21 @@ ${chalk.dim("What gets created:")}
       const results: Record<string, unknown> = {};
 
       try {
-        // 1. Check if repo exists; require --create for new repos
+        // 1. Check if repo exists — explicitly test for 404.
+        // Only a 404 means "doesn't exist"; other errors (401, network) should propagate.
         let repoUrl = "";
-        let repoExists = false;
+        let repoExists = true;
         try {
           const { data } = await octokit.repos.get({ owner, repo });
           repoUrl = data.html_url;
-          repoExists = true;
           if (!json) console.log(chalk.dim(`Repository ${owner}/${repo} exists — configuring…`));
-        } catch {
-          repoExists = false;
+        } catch (e: unknown) {
+          if ((e as { status?: number }).status === 404) {
+            repoExists = false;
+          } else {
+            // Rethrow — not a 404, could be auth/network issue
+            throw e;
+          }
         }
 
         if (!repoExists) {
