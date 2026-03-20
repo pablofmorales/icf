@@ -16,7 +16,11 @@ jobs:
     # Prevents GH_PAT exfiltration via malicious PRs from forks.
     # https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: self-hosted
+    # Security fix #16: moved from self-hosted ('aang') to ubuntu-latest.
+    # A public repo on self-hosted runner means any account compromise could
+    # execute code on the homelab and exfiltrate OPENCLAW_GATEWAY_TOKEN / GH_PAT.
+    # GitHub-hosted runners are ephemeral and isolated.
+    runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:

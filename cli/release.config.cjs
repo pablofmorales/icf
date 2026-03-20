@@ -27,7 +27,10 @@ module.exports = {
     }],
     ["@semantic-release/changelog", { changelogFile: "CHANGELOG.md" }],
     ["@semantic-release/exec",      { prepareCmd: "npm run build" }],
-    ["@semantic-release/npm",       { npmPublish: true, pkgRoot: "." }],
+    // Security fix #18: publish with provenance so consumers can verify the
+    // published artifact was built from this exact source commit.
+    // Requires id-token: write in the workflow (already present).
+    ["@semantic-release/npm",       { npmPublish: true, pkgRoot: ".", npmPublishOptions: ["--provenance"] }],
     ["@semantic-release/github",    { addReleases: "bottom", successComment: false, failComment: false }],
     ["@semantic-release/git", {
       assets: ["package.json", "package-lock.json", "CHANGELOG.md"],
