@@ -1,3 +1,9 @@
+## [1.2.2](https://github.com/BlackAsteroid/icf/compare/v1.2.1...v1.2.2) (2026-03-20)
+
+### 🐛 Bug Fixes
+
+* **ci:** disable semantic-release success/fail comments on issues ([123ba53](https://github.com/BlackAsteroid/icf/commit/123ba537027fce327c6dc28caf05d92c9000309f)), closes [#46](https://github.com/BlackAsteroid/icf/issues/46) [#47](https://github.com/BlackAsteroid/icf/issues/47) [#48](https://github.com/BlackAsteroid/icf/issues/48)
+
 ## [1.2.1](https://github.com/BlackAsteroid/icf/compare/v1.2.0...v1.2.1) (2026-03-19)
 
 ### 🐛 Bug Fixes
