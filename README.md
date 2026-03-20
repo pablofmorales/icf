@@ -1,4 +1,4 @@
-# icf — Incident Command Framework
+# icf - Incident Command Framework
 
 Manage service incidents through GitHub Issues from your terminal. No third-party tools. No vendor lock-in. Just your existing GitHub org, structured labels, and automated triage workflows.
 
