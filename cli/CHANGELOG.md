@@ -1,3 +1,9 @@
+## [1.2.3](https://github.com/BlackAsteroid/icf/compare/v1.2.2...v1.2.3) (2026-03-20)
+
+### 🐛 Bug Fixes
+
+* **security:** move pr-review to ubuntu-latest ([#16](https://github.com/BlackAsteroid/icf/issues/16)) + npm provenance ([#18](https://github.com/BlackAsteroid/icf/issues/18)) ([dcef211](https://github.com/BlackAsteroid/icf/commit/dcef211bfa51e4f3ca74e8042ceb5c7280f1f8c7))
+
 ## [1.2.2](https://github.com/BlackAsteroid/icf/compare/v1.2.1...v1.2.2) (2026-03-20)
 
 ### 🐛 Bug Fixes
