@@ -2,6 +2,8 @@
 
 Manage service incidents through GitHub Issues from your terminal. No third-party tools. No vendor lock-in. Just your existing GitHub org, structured labels, and automated triage workflows.
 
+[![icf demo](.github/assets/demo.gif)](https://github.com/BlackAsteroid/icf/releases/latest/download/demo.mp4)
+
 ## What it does
 
 icf turns a GitHub repository into a full incident management system:
