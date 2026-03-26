@@ -32,6 +32,15 @@ icf/
 
 ## Install
 
+### Homebrew (macOS / Linux)
+
+```bash
+brew tap BlackAsteroid/tap
+brew install icf
+```
+
+### npm
+
 ```bash
 npm install -g @blackasteroid/icf
 ```

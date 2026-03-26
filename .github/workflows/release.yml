@@ -42,3 +42,55 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npx semantic-release
+
+      - name: Update Homebrew Tap
+        if: success()
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          # Get the new version released by semantic-release
+          NEW_VERSION=$(node -p "require('./cli/package.json').version")
+          echo "Updating homebrew-tap formula for icf v${NEW_VERSION}"
+
+          # Download the tarball and compute SHA256
+          TGZ_URL="https://registry.npmjs.org/@blackasteroid/icf/-/icf-${NEW_VERSION}.tgz"
+          curl -sL "$TGZ_URL" -o /tmp/icf.tgz
+          SHA256=$(sha256sum /tmp/icf.tgz | awk '{print $1}')
+          echo "SHA256: $SHA256"
+
+          # Clone the tap repo
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/BlackAsteroid/homebrew-tap.git" /tmp/homebrew-tap
+          cd /tmp/homebrew-tap
+
+          git config user.email "dante@blackasteroid.com.ar"
+          git config user.name "Dante (DevOps) [bot]"
+
+          # Update the formula
+          cat > Formula/icf.rb << FORMULA
+          class Icf < Formula
+            desc "Incident Command Framework — manage incidents via GitHub Issues from your terminal"
+            homepage "https://github.com/BlackAsteroid/icf"
+            url "https://registry.npmjs.org/@blackasteroid/icf/-/icf-${NEW_VERSION}.tgz"
+            sha256 "${SHA256}"
+            license "MIT"
+            version "${NEW_VERSION}"
+
+            depends_on "node"
+
+            def install
+              system "npm", "install", *std_npm_args
+              bin.install_symlink Dir["#{libexec}/bin/*"]
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/icf --version")
+            end
+          end
+          FORMULA
+
+          # Fix indentation (heredoc added leading spaces)
+          sed -i 's/^          //' Formula/icf.rb
+
+          git add Formula/icf.rb
+          git diff --cached --quiet || git commit -m "chore: bump icf to v${NEW_VERSION}"
+          git push origin main
