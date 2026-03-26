@@ -8,6 +8,7 @@ module.exports = {
         { type: "fix",    release: "patch" },
         { type: "perf",   release: "patch" },
         { type: "revert", release: "patch" },
+        { type: "docs",   release: "patch" },
       ],
       parserOpts: { noteKeywords: ["BREAKING CHANGE", "BREAKING CHANGES"] },
     }],
