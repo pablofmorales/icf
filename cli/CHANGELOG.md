@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/BlackAsteroid/icf/compare/v1.3.0...v1.3.1) (2026-03-26)
+
+### 📚 Documentation
+
+* add Homebrew install to cli/README + bump docs → patch release ([bdad0bf](https://github.com/BlackAsteroid/icf/commit/bdad0bfe147f08ba8c1b2e08971d3180d776add8))
+
 ## [1.3.0](https://github.com/BlackAsteroid/icf/compare/v1.2.3...v1.3.0) (2026-03-26)
 
 ### 🚀 Features
