@@ -1,3 +1,19 @@
+## [1.3.0](https://github.com/BlackAsteroid/icf/compare/v1.2.3...v1.3.0) (2026-03-26)
+
+### 🚀 Features
+
+* add demo GIF to README (closes [#20](https://github.com/BlackAsteroid/icf/issues/20), fixes [#22](https://github.com/BlackAsteroid/icf/issues/22)) ([#24](https://github.com/BlackAsteroid/icf/issues/24)) ([156dda7](https://github.com/BlackAsteroid/icf/commit/156dda7e5dfabfbb7db29532a42c8b91512eb575))
+* add demo video and GIF to README (closes [#20](https://github.com/BlackAsteroid/icf/issues/20)) ([#21](https://github.com/BlackAsteroid/icf/issues/21)) ([92c0d1f](https://github.com/BlackAsteroid/icf/commit/92c0d1fcbed75484e6e7bf7d5e01c8784efa0c40))
+* add Homebrew tap support ([a649ea6](https://github.com/BlackAsteroid/icf/commit/a649ea60205cefde2d18d46db4014b9a001be615))
+
+### 🐛 Bug Fixes
+
+* remove demo.mp4 from git history, add to .gitignore ([#23](https://github.com/BlackAsteroid/icf/issues/23)) ([ac5ef9b](https://github.com/BlackAsteroid/icf/commit/ac5ef9b58ccfef6944f7571310c752dacd07df4a))
+
+### 📚 Documentation
+
+* add Homebrew install instructions to cli/README.md ([3b40024](https://github.com/BlackAsteroid/icf/commit/3b40024b7212a827e3fcf8761c03dcb7557a978f))
+
 ## [1.2.3](https://github.com/BlackAsteroid/icf/compare/v1.2.2...v1.2.3) (2026-03-20)
 
 ### 🐛 Bug Fixes
