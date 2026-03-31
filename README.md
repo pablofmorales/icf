@@ -2,7 +2,7 @@
 
 Manage service incidents through GitHub Issues from your terminal. No third-party tools. No vendor lock-in. Just your existing GitHub org, structured labels, and automated triage workflows.
 
-[![icf demo](.github/assets/demo.gif)](https://github.com/BlackAsteroid/icf/releases/latest/download/demo.mp4)
+[![icf demo](.github/assets/demo.gif)](https://github.com/pablofmorales/icf/releases/latest/download/demo.mp4)
 
 ## What it does
 
@@ -17,7 +17,7 @@ icf turns a GitHub repository into a full incident management system:
 
 ```
 icf/
-├── cli/              ← npm package (@blackasteroid/icf)
+├── cli/              ← npm package (@pablofmorales/icf)
 │   ├── src/
 │   │   ├── commands/ ← auth, init, incident, config, upgrade
 │   │   ├── utils/    ← format, box, errors
@@ -35,14 +35,14 @@ icf/
 ### Homebrew (macOS / Linux)
 
 ```bash
-brew tap BlackAsteroid/tap
+brew tap pablofmorales/tap
 brew install icf
 ```
 
 ### npm
 
 ```bash
-npm install -g @blackasteroid/icf
+npm install -g @pablofmorales/icf
 ```
 
 ## Quick start
@@ -70,4 +70,4 @@ icf incident list --json | jq '.data[] | select(.severity == "P0")'
 
 ## License
 
-MIT — [Black Asteroid](https://blackasteroid.com.ar)
+MIT — [pablofmorales](https://github.com/pablofmorales)

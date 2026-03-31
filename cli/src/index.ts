@@ -57,7 +57,7 @@ program
   .option("--json", "Output as JSON")
   .action((opts: { json?: boolean }) => {
     if (opts.json || process.env["ICF_JSON"]) {
-      console.log(JSON.stringify({ ok: true, data: { version: VERSION, name: "@blackasteroid/icf" } }, null, 2));
+      console.log(JSON.stringify({ ok: true, data: { version: VERSION, name: "@pablofmorales/icf" } }, null, 2));
     } else {
       console.log(VERSION);
     }
@@ -69,7 +69,7 @@ program
 const args = process.argv.slice(2);
 if ((args.includes("--version") || args.includes("-V")) &&
     (args.includes("--json") || process.env["ICF_JSON"])) {
-  console.log(JSON.stringify({ ok: true, data: { version: VERSION, name: "@blackasteroid/icf" } }, null, 2));
+  console.log(JSON.stringify({ ok: true, data: { version: VERSION, name: "@pablofmorales/icf" } }, null, 2));
   process.exit(0);
 }
 
