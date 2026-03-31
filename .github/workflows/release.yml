@@ -53,7 +53,7 @@ jobs:
           echo "Updating homebrew-tap formula for icf v${NEW_VERSION}"
 
           # Download the tarball and compute SHA256
-          TGZ_URL="https://registry.npmjs.org/@pablofmorales/icf/-/icf-${NEW_VERSION}.tgz"
+          TGZ_URL="https://registry.npmjs.org/@blackasteroid/icf/-/icf-${NEW_VERSION}.tgz"
           curl -sL "$TGZ_URL" -o /tmp/icf.tgz
           SHA256=$(sha256sum /tmp/icf.tgz | awk '{print $1}')
           echo "SHA256: $SHA256"
@@ -70,7 +70,7 @@ jobs:
           class Icf < Formula
             desc "Incident Command Framework — manage incidents via GitHub Issues from your terminal"
             homepage "https://github.com/pablofmorales/icf"
-            url "https://registry.npmjs.org/@pablofmorales/icf/-/icf-${NEW_VERSION}.tgz"
+            url "https://registry.npmjs.org/@blackasteroid/icf/-/icf-${NEW_VERSION}.tgz"
             sha256 "${SHA256}"
             license "MIT"
             version "${NEW_VERSION}"

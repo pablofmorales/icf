@@ -17,7 +17,7 @@ icf turns a GitHub repository into a full incident management system:
 
 ```
 icf/
-├── cli/              ← npm package (@pablofmorales/icf)
+├── cli/              ← npm package (@blackasteroid/icf)
 │   ├── src/
 │   │   ├── commands/ ← auth, init, incident, config, upgrade
 │   │   ├── utils/    ← format, box, errors
@@ -42,7 +42,7 @@ brew install icf
 ### npm
 
 ```bash
-npm install -g @pablofmorales/icf
+npm install -g @blackasteroid/icf
 ```
 
 ## Quick start

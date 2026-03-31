@@ -17,13 +17,13 @@ interface GithubRelease {
 async function fetchLatestRelease(): Promise<GithubRelease | null> {
   try {
     const res = await fetch(
-      "https://registry.npmjs.org/@pablofmorales/icf/latest",
+      "https://registry.npmjs.org/@blackasteroid/icf/latest",
       { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000) }
     );
     if (!res.ok) return null;
     const data = await res.json() as { version?: string };
     if (!data.version) return null;
-    return { tag_name: data.version, html_url: `https://www.npmjs.com/package/@pablofmorales/icf` };
+    return { tag_name: data.version, html_url: `https://www.npmjs.com/package/@blackasteroid/icf` };
   } catch {
     return null;
   }
@@ -114,7 +114,7 @@ ${chalk.dim("Examples:")}
         // with string interpolation — prevents shell injection regardless of version string.
         const result = spawnSync(
           "npm",
-          ["install", "-g", `@pablofmorales/icf@${latest}`],
+          ["install", "-g", `@blackasteroid/icf@${latest}`],
           { stdio: json ? "pipe" : "inherit", shell: false }
         );
 
