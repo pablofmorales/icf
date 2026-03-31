@@ -230,7 +230,7 @@ icf --version --json
 
 ## Security
 
-Report vulnerabilities privately to **pablofmorales@gmail.com**. See [SECURITY.md](./SECURITY.md).
+Report vulnerabilities privately to **pablo@blackasteroid.com.ar**. See [SECURITY.md](./SECURITY.md).
 
 ## License
 
