@@ -4,7 +4,7 @@ If you discover a security vulnerability in ICF or in this incident repository, 
 
 ## Contact
 
-**Email:** pablofmorales@gmail.com  
+**Email:** pablo@blackasteroid.com.ar  
 **Response time:** We aim to acknowledge within 48 hours and provide a fix or mitigation within 7 days for critical issues.
 
 Please include:

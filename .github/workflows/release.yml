@@ -53,24 +53,24 @@ jobs:
           echo "Updating homebrew-tap formula for icf v${NEW_VERSION}"
 
           # Download the tarball and compute SHA256
-          TGZ_URL="https://registry.npmjs.org/@blackasteroid/icf/-/icf-${NEW_VERSION}.tgz"
+          TGZ_URL="https://registry.npmjs.org/@pablofmorales/icf/-/icf-${NEW_VERSION}.tgz"
           curl -sL "$TGZ_URL" -o /tmp/icf.tgz
           SHA256=$(sha256sum /tmp/icf.tgz | awk '{print $1}')
           echo "SHA256: $SHA256"
 
           # Clone the tap repo
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/BlackAsteroid/homebrew-tap.git" /tmp/homebrew-tap
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/pablofmorales/homebrew-tap.git" /tmp/homebrew-tap
           cd /tmp/homebrew-tap
 
-          git config user.email "dante@blackasteroid.com.ar"
+          git config user.email "pablo@blackasteroid.com.ar"
           git config user.name "Dante (DevOps) [bot]"
 
           # Update the formula
           cat > Formula/icf.rb << FORMULA
           class Icf < Formula
             desc "Incident Command Framework — manage incidents via GitHub Issues from your terminal"
-            homepage "https://github.com/BlackAsteroid/icf"
-            url "https://registry.npmjs.org/@blackasteroid/icf/-/icf-${NEW_VERSION}.tgz"
+            homepage "https://github.com/pablofmorales/icf"
+            url "https://registry.npmjs.org/@pablofmorales/icf/-/icf-${NEW_VERSION}.tgz"
             sha256 "${SHA256}"
             license "MIT"
             version "${NEW_VERSION}"
