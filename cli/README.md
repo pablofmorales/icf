@@ -7,20 +7,20 @@ Manage service incidents through GitHub Issues from your terminal. Every inciden
 ### Homebrew (macOS / Linux)
 
 ```bash
-brew tap BlackAsteroid/tap
+brew tap pablofmorales/tap
 brew install icf
 ```
 
 ### npm
 
 ```bash
-npm install -g @blackasteroid/icf
+npm install -g @pablofmorales/icf
 ```
 
 Or try it without installing:
 
 ```bash
-npx @blackasteroid/icf auth login
+npx @pablofmorales/icf auth login
 ```
 
 ## Quick start
@@ -220,7 +220,7 @@ icf incident resolve $INC --rca "Rolled back v1.4.3, issue fixed" --json
 
 ```bash
 icf version --json
-# → { "ok": true, "data": { "version": "1.1.0", "name": "@blackasteroid/icf" } }
+# → { "ok": true, "data": { "version": "1.1.0", "name": "@pablofmorales/icf" } }
 
 icf --version --json
 # → same
@@ -230,8 +230,8 @@ icf --version --json
 
 ## Security
 
-Report vulnerabilities privately to **security@blackasteroid.com.ar**. See [SECURITY.md](./SECURITY.md).
+Report vulnerabilities privately to **pablofmorales@gmail.com**. See [SECURITY.md](./SECURITY.md).
 
 ## License
 
-MIT — [Black Asteroid](https://blackasteroid.com.ar)
+MIT — [pablofmorales](https://github.com/pablofmorales)
