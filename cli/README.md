@@ -14,13 +14,13 @@ brew install icf
 ### npm
 
 ```bash
-npm install -g @pablofmorales/icf
+npm install -g @blackasteroid/icf
 ```
 
 Or try it without installing:
 
 ```bash
-npx @pablofmorales/icf auth login
+npx @blackasteroid/icf auth login
 ```
 
 ## Quick start
@@ -220,7 +220,7 @@ icf incident resolve $INC --rca "Rolled back v1.4.3, issue fixed" --json
 
 ```bash
 icf version --json
-# → { "ok": true, "data": { "version": "1.1.0", "name": "@pablofmorales/icf" } }
+# → { "ok": true, "data": { "version": "1.1.0", "name": "@blackasteroid/icf" } }
 
 icf --version --json
 # → same
