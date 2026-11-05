@@ -1,7 +1,7 @@
 {
   "name": "@blackasteroid/icf",
   "version": "1.3.1",
-  "description": "Incident Command Framework — CLI-first incident management backed by GitHub",
+  "description": "Incident Command Framework \u2014 CLI-first incident management backed by GitHub",
   "bin": {
     "icf": "dist/index.js"
   },
@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build",
     "release": "semantic-release",
-    "release:dry": "semantic-release --dry-run"
+    "release:dry": "semantic-release --dry-run",
+    "test": "npm run build && node test-create.cjs"
   },
   "keywords": [
     "incident-management",

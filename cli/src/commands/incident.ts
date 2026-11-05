@@ -156,13 +156,17 @@ ${chalk.dim("Agent / pipe usage (--input-json):")}
 
         const id = incidentId(issue.number);
 
-        // Post initial timeline comment
-        await octokit.issues.createComment({
+        // The issue is committed already. A secondary comment must never hide its ID.
+        try {
+          await octokit.issues.createComment({
           owner: target.owner,
           repo: target.repo,
           issue_number: issue.number,
           body: `${severityEmoji(severity)} Incident created by @${auth!.github_user}`,
-        });
+          });
+        } catch {
+          console.error(`Warning: ${id} was created, but its initial timeline comment failed.`);
+        }
 
         if (json) {
           jsonOut({ id, issue_number: issue.number, severity, status: "open", service, url: issue.html_url });
@@ -226,7 +230,7 @@ ${chalk.dim("Examples:")}
         if (opts.severity) labelFilters.push(`severity:${opts.severity.toUpperCase()}`);
         if (opts.status)   labelFilters.push(`status:${opts.status.toLowerCase()}`);
 
-        const { data: issues } = await octokit.issues.listForRepo({
+        const issues = await octokit.paginate(octokit.issues.listForRepo, {
           owner: target.owner,
           repo: target.repo,
           state: opts.all ? "all" : "open",
@@ -250,6 +254,7 @@ ${chalk.dim("Examples:")}
             severity: getSeverityFromLabels(i.labels as any),
             status:   getStatusFromLabels(i.labels as any),
             service:  extractField(i.body, "service"),
+            body: i.body ?? "",
             created_at: i.created_at,
             url: i.html_url,
             assignees: i.assignees?.map((a) => a.login) ?? [],
